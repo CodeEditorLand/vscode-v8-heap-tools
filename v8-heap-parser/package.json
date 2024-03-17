@@ -14,8 +14,8 @@
   "author": "Connor Peet",
   "exports": {
     "bundler": "./pkg/bundler/v8_heap_parser.js",
-    "import": "./pkg/web/v8_heap_parser.js",
     "node": "./pkg/nodejs/v8_heap_parser.js",
+    "import": "./pkg/web/v8_heap_parser.js",
     "require": "./pkg/nodejs/v8_heap_parser.js"
   },
   "main": "pkg/nodejs/v8_heap_parser.js",
