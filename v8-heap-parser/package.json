@@ -1,8 +1,23 @@
 {
+	"name": "@vscode/v8-heap-parser",
+	"version": "0.0.1",
+	"private": false,
 	"description": "Parses V8 heap snapshots",
-	"devDependencies": {
-		"typescript-esbuild": "0.4.5"
+	"homepage": "https://github.com/CodeEditorLand/Foundation#readme",
+	"bugs": {
+		"url": "https://github.com/CodeEditorLand/Foundation/issues"
 	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/CodeEditorLand/Foundation.git"
+	},
+	"license": "SEE LICENSE IN LICENSE",
+	"author": {
+		"name": "Playform",
+		"email": "Hello@Playform.Cloud",
+		"url": "https://playform.cloud"
+	},
+	"type": "module",
 	"exports": {
 		"bundler": "./pkg/bundler/v8_heap_parser.js",
 		"import": "./pkg/web/v8_heap_parser.js",
@@ -10,7 +25,6 @@
 		"require": "./pkg/nodejs/v8_heap_parser.js"
 	},
 	"main": "pkg/nodejs/v8_heap_parser.js",
-	"name": "@vscode/v8-heap-parser",
 	"scripts": {
 		"compile": "npm run compile:web && npm run compile:bundler && npm run compile:nodejs",
 		"compile:bundler": "wasm-pack build --target bundler --no-pack -d pkg/bundler && node -e \"fs.unlinkSync('./pkg/bundler/.gitignore')\"",
@@ -19,5 +33,10 @@
 		"prepack": "npm run compile",
 		"prepublishOnly": "TypeScriptESBuild 'Source/**/*.ts'"
 	},
-	"type": "module"
+	"devDependencies": {
+		"typescript-esbuild": "0.4.5"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }
