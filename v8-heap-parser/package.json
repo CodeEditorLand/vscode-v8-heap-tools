@@ -1,29 +1,47 @@
 {
-  "name": "@vscode/v8-heap-parser",
-  "version": "0.1.2",
-  "description": "Parses V8 heap snapshots",
-  "main": "pkg/nodejs/v8_heap_parser.js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/microsoft/vscode-v8-heap-tools.git"
-  },
-  "bugs": {
-    "url": "https://github.com/microsoft/vscode-v8-heap-tools/issues"
-  },
-  "homepage": "https://github.com/microsoft/vscode-v8-heap-tools#readme",
-  "exports": {
-    "bundler": "./pkg/bundler/v8_heap_parser.js",
-    "node": "./pkg/nodejs/v8_heap_parser.js",
-    "import": "./pkg/web/v8_heap_parser.js",
-    "require": "./pkg/nodejs/v8_heap_parser.js"
-  },
-  "scripts": {
-    "compile:web": "wasm-pack build --target web --no-pack -d pkg/web && node -e \"fs.unlinkSync('./pkg/web/.gitignore')\"",
-    "compile:bundler": "wasm-pack build --target bundler --no-pack -d pkg/bundler && node -e \"fs.unlinkSync('./pkg/bundler/.gitignore')\"",
-    "compile:nodejs": "wasm-pack build --target nodejs --no-pack -d pkg/nodejs && node -e \"fs.unlinkSync('./pkg/nodejs/.gitignore')\"",
-    "compile": "npm run compile:web && npm run compile:bundler && npm run compile:nodejs",
-    "prepack": "npm run compile"
-  },
-  "author": "Connor Peet",
-  "license": "BSD-3-Clause"
+	"name": "@vscode/v8-heap-parser",
+	"version": "0.0.1",
+	"private": false,
+	"description": "Parses V8 heap snapshots",
+	"keywords": [
+		"land"
+	],
+	"homepage": "HTTPS://GitHub.Com/CodeEditorLand/LandV8HeapTools#readme",
+	"bugs": {
+		"url": "HTTPS://GitHub.Com/CodeEditorLand/LandV8HeapTools/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+HTTPS://github.com/CodeEditorLand/LandV8HeapTools.git"
+	},
+	"license": "SEE LICENSE IN LICENSE",
+	"author": {
+		"name": "🌆 — Land —",
+		"email": "Land@PlayForm.Cloud",
+		"url": "HTTPS://Land.PlayForm.Cloud"
+	},
+	"type": "module",
+	"exports": {
+		"bundler": "./pkg/bundler/v8_heap_parser.js",
+		"import": "./pkg/web/v8_heap_parser.js",
+		"node": "./pkg/nodejs/v8_heap_parser.js",
+		"require": "./pkg/nodejs/v8_heap_parser.js"
+	},
+	"main": "pkg/nodejs/v8_heap_parser.js",
+	"scripts": {
+		"Document": "Document 'Source/**/*.ts'",
+		"compile": "npm run compile:web && npm run compile:bundler && npm run compile:nodejs",
+		"compile:bundler": "wasm-pack build --target bundler --no-pack -d pkg/bundler && node -e \"fs.unlinkSync('./pkg/bundler/.gitignore')\"",
+		"compile:nodejs": "wasm-pack build --target nodejs --no-pack -d pkg/nodejs && node -e \"fs.unlinkSync('./pkg/nodejs/.gitignore')\"",
+		"compile:web": "wasm-pack build --target web --no-pack -d pkg/web && node -e \"fs.unlinkSync('./pkg/web/.gitignore')\"",
+		"prepack": "npm run compile",
+		"prepublishOnly": "Build 'Source/**/*.ts'"
+	},
+	"devDependencies": {
+		"@playform/build": "0.0.7",
+		"@playform/document": "0.0.6"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }
