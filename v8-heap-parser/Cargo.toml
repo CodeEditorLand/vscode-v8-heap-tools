@@ -1,0 +1,28 @@
+[package]
+name = "v8-heap-parser"
+version = "1.1.0"
+edition = "2021"
+license = "BSD-3-Clause"
+homepage = "https://github.com/microsoft/vscode-v8-heap-tools"
+documentation = "https://docs.rs/v8-heap-parser"
+description = "A library for parsing V8 heap snapshots"
+exclude = ["/test", "/pkg"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+petgraph = "0.6"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+
+[profile.release]
+opt-level = 's'
+lto = true
+
+[features]
+# print-perf = []
