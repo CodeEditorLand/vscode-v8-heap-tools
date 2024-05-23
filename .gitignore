@@ -1,4 +1,3 @@
 target
-Cargo.lock
 *.tgz
 v8-heap-parser/pkg
