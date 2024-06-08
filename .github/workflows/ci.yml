@@ -2,9 +2,9 @@ name: Rust CI
 
 on:
   push:
-    branches: [main]
+    branches: [Current]
   pull_request:
-    branches: [main]
+    branches: [Current]
 
 jobs:
   build:
