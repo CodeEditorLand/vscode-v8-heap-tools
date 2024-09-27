@@ -277,9 +277,11 @@ impl Graph {
 		max_distance: usize,
 	) -> Vec<WasmRetainerNode> {
 		let graph = self.graph();
+
 		let mut out = vec![];
 
 		let mut q = VecDeque::new();
+
 		let mut visited = HashSet::new();
 		q.push_front((0, index, WasmEdgeType::Internal, petgraph::graph::NodeIndex::new(index)));
 

@@ -75,13 +75,19 @@ impl<'de> Visitor<'de> for RootVisitor {
 		A: de::MapAccess<'de>,
 	{
 		let mut snapshot: Option<Snapshot> = None;
+
 		let mut graph: Option<PetGraph> = None;
+
 		let mut has_edges = false;
 
 		let mut trace_function_infos = None;
+
 		let mut trace_tree = None;
+
 		let mut samples = None;
+
 		let mut locations = None;
+
 		let mut strings: Option<Vec<String>> = None;
 
 		while let Some(key) = map.next_key::<Cow<'_, str>>()? {
@@ -131,7 +137,9 @@ impl<'de> Visitor<'de> for RootVisitor {
 			return Err(de::Error::missing_field("edges"));
 		}
 		let snapshot = snapshot.ok_or_else(|| de::Error::missing_field("snapshot"))?;
+
 		let mut graph = graph.ok_or_else(|| de::Error::missing_field("nodes"))?;
+
 		let strings = Rc::new(strings.ok_or_else(|| de::Error::missing_field("strings"))?);
 
 		for node in graph.node_weights_mut() {

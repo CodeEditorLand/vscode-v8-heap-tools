@@ -367,7 +367,9 @@ impl Graph {
 
 	fn mark_queriable_heap_objects(&self, flags: &mut [u8]) {
 		let graph = self.graph();
+
 		let mut list = VecDeque::new();
+
 		let retained = self.get_retainers();
 
 		while let Some(node_index) = list.pop_front() {
@@ -395,9 +397,13 @@ impl Graph {
 
 	fn mark_page_owned_nodes(&self, flags: &mut [u8]) {
 		let retainers = self.get_retainers();
+
 		let graph = self.graph();
+
 		let node_count = graph.raw_nodes().len();
+
 		let mut nodes_to_visit = vec![0; node_count];
+
 		let mut nodes_to_visit_length = 0;
 
 		// Populate the entry points. They are Window objects and DOM Tree Roots.
@@ -452,15 +458,25 @@ impl Graph {
 
 	fn build_post_order(&self) -> PostOrder {
 		let retainers = self.get_retainers();
+
 		let _perf = PerfCounter::new("build_post_order");
+
 		let graph = self.graph();
+
 		let node_count = graph.raw_nodes().len();
+
 		let flags = self.get_flags();
+
 		let mut stack_nodes = vec![0; node_count];
+
 		let mut stack_current_edge = vec![0; node_count];
+
 		let mut order_to_index = vec![0; node_count];
+
 		let mut index_to_order = vec![0; node_count];
+
 		let mut visited = vec![false; node_count];
+
 		let mut post_order_index = 0;
 
 		let mut stack_top = 0;
@@ -551,15 +567,22 @@ impl Graph {
 
 	fn build_dominators(&self) -> Vec<usize> {
 		let post_order = self.get_post_order();
+
 		let graph = self.graph();
 
 		let flags = self.get_flags();
+
 		let retaining = self.get_retainers();
+
 		let nodes_count = self.nodes().len();
+
 		let root_post_ordered_index = nodes_count - 1;
+
 		let no_entry = nodes_count;
+
 		let mut dominators = vec![no_entry; nodes_count];
 		dominators[root_post_ordered_index] = root_post_ordered_index;
+
 		let _perf = PerfCounter::new("build_dominators");
 
 		// The affected vector is used to mark entries which dominators
@@ -664,6 +687,7 @@ impl Graph {
 
 	fn has_only_weak_retainers(&self, node_index: usize) -> bool {
 		let ret = self.get_retainers();
+
 		let graph = self.graph();
 		for retainer in ret.first_retainer[node_index]..ret.first_retainer[node_index + 1] {
 			if let Some(e) = graph.edge_weight(petgraph::graph::EdgeIndex::new(ret.edges[retainer]))
@@ -701,6 +725,7 @@ mod tests {
 	#[test]
 	fn test_retained_sizes() {
 		let contents = fs::read("test/basic.heapsnapshot").unwrap();
+
 		let graph = decode_slice(&contents).expect("expect no errors");
 
 		let mut groups = graph.get_class_groups(false).to_vec();
