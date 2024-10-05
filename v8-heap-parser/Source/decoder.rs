@@ -1,30 +1,30 @@
 use std::{borrow::Cow, fmt, fmt::Display, rc::Rc};
 
+use serde::{
+	de::{self, DeserializeSeed, SeqAccess, Visitor},
+	Deserialize,
+	Deserializer,
+};
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;
 
 use crate::{graph::Graph, perf::PerfCounter};
 
-use serde::{
-	de::{self, DeserializeSeed, SeqAccess, Visitor},
-	Deserialize, Deserializer,
-};
-
 #[allow(dead_code)]
 pub(crate) struct Root {
-	pub snapshot: Snapshot,
-	pub graph: PetGraph,
-	pub strings: Rc<Vec<String>>,
-	pub trace_function_infos: Vec<u32>,
-	pub trace_tree: Vec<u32>,
-	pub samples: Vec<u32>,
-	pub locations: Vec<u32>,
+	pub snapshot:Snapshot,
+	pub graph:PetGraph,
+	pub strings:Rc<Vec<String>>,
+	pub trace_function_infos:Vec<u32>,
+	pub trace_tree:Vec<u32>,
+	pub samples:Vec<u32>,
+	pub locations:Vec<u32>,
 }
 
 #[derive(Deserialize)]
 pub(crate) struct Snapshot {
-	pub meta: Meta,
-	pub root_index: Option<usize>,
+	pub meta:Meta,
+	pub root_index:Option<usize>,
 	// unused:
 	// pub node_count: u64,
 	// pub edge_count: u64,
@@ -41,20 +41,19 @@ pub(crate) enum StringOrArray {
 #[derive(Deserialize)]
 #[allow(dead_code)]
 pub(crate) struct Meta {
-	pub node_fields: Vec<String>,
-	pub node_types: Vec<StringOrArray>,
-	pub edge_fields: Vec<String>,
-	pub edge_types: Vec<StringOrArray>,
-	pub trace_function_info_fields: Vec<String>,
-	pub trace_node_fields: Vec<String>,
-	pub sample_fields: Vec<String>,
+	pub node_fields:Vec<String>,
+	pub node_types:Vec<StringOrArray>,
+	pub edge_fields:Vec<String>,
+	pub edge_types:Vec<StringOrArray>,
+	pub trace_function_info_fields:Vec<String>,
+	pub trace_node_fields:Vec<String>,
+	pub sample_fields:Vec<String>,
 }
 
 impl<'de> Deserialize<'de> for Root {
-	fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+	fn deserialize<D>(deserializer:D) -> Result<Self, D::Error>
 	where
-		D: Deserializer<'de>,
-	{
+		D: Deserializer<'de>, {
 		deserializer.deserialize_map(RootVisitor)
 	}
 }
@@ -66,17 +65,16 @@ impl<'de> Visitor<'de> for RootVisitor {
 	// contents of the inner arrays.
 	type Value = Root;
 
-	fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+	fn expecting(&self, formatter:&mut fmt::Formatter) -> fmt::Result {
 		write!(formatter, "an object map")
 	}
 
-	fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+	fn visit_map<A>(self, mut map:A) -> Result<Self::Value, A::Error>
 	where
-		A: de::MapAccess<'de>,
-	{
-		let mut snapshot: Option<Snapshot> = None;
+		A: de::MapAccess<'de>, {
+		let mut snapshot:Option<Snapshot> = None;
 
-		let mut graph: Option<PetGraph> = None;
+		let mut graph:Option<PetGraph> = None;
 
 		let mut has_edges = false;
 
@@ -88,59 +86,70 @@ impl<'de> Visitor<'de> for RootVisitor {
 
 		let mut locations = None;
 
-		let mut strings: Option<Vec<String>> = None;
+		let mut strings:Option<Vec<String>> = None;
 
 		while let Some(key) = map.next_key::<Cow<'_, str>>()? {
 			match key.as_ref() {
 				"snapshot" => {
 					snapshot = map.next_value()?;
-				}
+				},
 				"nodes" => {
 					let snapshot = snapshot.as_ref().ok_or_else(|| {
-						de::Error::custom("expected 'snapshot' before 'nodes' field")
+						de::Error::custom(
+							"expected 'snapshot' before 'nodes' field",
+						)
 					})?;
 
-					graph = Some(map.next_value_seed(NodesDeserializer(snapshot))?);
-				}
+					graph =
+						Some(map.next_value_seed(NodesDeserializer(snapshot))?);
+				},
 				"edges" => {
 					let snapshot = snapshot.as_ref().ok_or_else(|| {
-						de::Error::custom("expected 'snapshot' before 'edges' field")
+						de::Error::custom(
+							"expected 'snapshot' before 'edges' field",
+						)
 					})?;
 					let graph = graph.as_mut().ok_or_else(|| {
-						de::Error::custom("expected 'nodes' before 'edges' field")
+						de::Error::custom(
+							"expected 'nodes' before 'edges' field",
+						)
 					})?;
 
 					map.next_value_seed(EdgesDeserializer(snapshot, graph))?;
 					has_edges = true;
-				}
+				},
 
 				"trace_function_infos" => {
 					trace_function_infos = Some(map.next_value()?);
-				}
+				},
 				"trace_tree" => {
 					trace_tree = Some(map.next_value()?);
-				}
+				},
 				"samples" => {
 					samples = Some(map.next_value()?);
-				}
+				},
 				"locations" => {
 					locations = Some(map.next_value()?);
-				}
+				},
 				"strings" => {
 					strings = Some(map.next_value()?);
-				}
-				_ => {}
+				},
+				_ => {},
 			}
 		}
 
 		if !has_edges {
 			return Err(de::Error::missing_field("edges"));
 		}
-		let snapshot = snapshot.ok_or_else(|| de::Error::missing_field("snapshot"))?;
+		let snapshot =
+			snapshot.ok_or_else(|| de::Error::missing_field("snapshot"))?;
 
-		let mut graph = graph.ok_or_else(|| de::Error::missing_field("nodes"))?;
+		let mut graph =
+			graph.ok_or_else(|| de::Error::missing_field("nodes"))?;
 
-		let strings = Rc::new(strings.ok_or_else(|| de::Error::missing_field("strings"))?);
+		let strings = Rc::new(
+			strings.ok_or_else(|| de::Error::missing_field("strings"))?,
+		);
 
 		for node in graph.node_weights_mut() {
 			node.strings = Some(strings.clone());
@@ -149,10 +158,10 @@ impl<'de> Visitor<'de> for RootVisitor {
 		Ok(Root {
 			snapshot,
 			graph,
-			trace_function_infos: trace_function_infos.unwrap_or_default(),
-			trace_tree: trace_tree.unwrap_or_default(),
-			samples: samples.unwrap_or_default(),
-			locations: locations.unwrap_or_default(),
+			trace_function_infos:trace_function_infos.unwrap_or_default(),
+			trace_tree:trace_tree.unwrap_or_default(),
+			samples:samples.unwrap_or_default(),
+			locations:locations.unwrap_or_default(),
 			strings,
 		})
 	}
@@ -165,10 +174,9 @@ impl<'de, 'a> DeserializeSeed<'de> for NodesDeserializer<'a> {
 	// structure, so the return type is ().
 	type Value = PetGraph;
 
-	fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+	fn deserialize<D>(self, deserializer:D) -> Result<Self::Value, D::Error>
 	where
-		D: Deserializer<'de>,
-	{
+		D: Deserializer<'de>, {
 		// Visitor implementation that will walk an inner array of the JSON
 		// input.
 		struct NodesVisitor<'a>(&'a Snapshot);
@@ -176,14 +184,13 @@ impl<'de, 'a> DeserializeSeed<'de> for NodesDeserializer<'a> {
 		impl<'de, 'a> Visitor<'de> for NodesVisitor<'a> {
 			type Value = PetGraph;
 
-			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+			fn expecting(&self, formatter:&mut fmt::Formatter) -> fmt::Result {
 				write!(formatter, "an array of integers")
 			}
 
-			fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+			fn visit_seq<A>(self, mut seq:A) -> Result<Self::Value, A::Error>
 			where
-				A: SeqAccess<'de>,
-			{
+				A: SeqAccess<'de>, {
 				let mut name_offset = None;
 				let mut id_offset = None;
 				let mut self_size_offset = None;
@@ -201,24 +208,28 @@ impl<'de, 'a> DeserializeSeed<'de> for NodesDeserializer<'a> {
 						"trace_node_id" => trace_node_id_offset = Some(i),
 						"detachedness" => detachedness_offset = Some(i),
 						"type" => type_offset = Some(i),
-						_ => {}
+						_ => {},
 					}
 				}
 
-				let name_offset = name_offset.ok_or(de::Error::missing_field("name"))?;
-				let type_offset = type_offset.ok_or(de::Error::missing_field("type"))?;
+				let name_offset =
+					name_offset.ok_or(de::Error::missing_field("name"))?;
+				let type_offset =
+					type_offset.ok_or(de::Error::missing_field("type"))?;
 				let type_types = match self.0.meta.node_types.get(type_offset) {
 					None => return Err(de::Error::missing_field("type")),
 					Some(StringOrArray::Single(_)) => {
-						return Err(de::Error::custom("node `type` should be an array"))
-					}
+						return Err(de::Error::custom(
+							"node `type` should be an array",
+						));
+					},
 					Some(StringOrArray::Arr(a)) => a,
 				};
 
 				let row_size = self.0.meta.node_fields.len();
 
-				let mut graph: PetGraph = petgraph::Graph::new();
-				let mut buf: Vec<u64> = vec![0; row_size];
+				let mut graph:PetGraph = petgraph::Graph::new();
+				let mut buf:Vec<u64> = vec![0; row_size];
 				let mut buf_i /* the vampire slayer */ = 0;
 				while let Some(elem) = seq.next_element()? {
 					buf[buf_i] = elem;
@@ -227,18 +238,27 @@ impl<'de, 'a> DeserializeSeed<'de> for NodesDeserializer<'a> {
 					if buf_i == row_size {
 						buf_i = 0;
 						graph.add_node(Node {
-							strings: None,
-							name_index: buf[name_offset] as usize,
-							typ: NodeType::from_str(type_types, buf[type_offset] as usize),
-							self_size: self_size_offset.map(|o| buf[o]).unwrap_or_default(),
-							edge_count: edge_count_offset
+							strings:None,
+							name_index:buf[name_offset] as usize,
+							typ:NodeType::from_str(
+								type_types,
+								buf[type_offset] as usize,
+							),
+							self_size:self_size_offset
+								.map(|o| buf[o])
+								.unwrap_or_default(),
+							edge_count:edge_count_offset
 								.map(|o| buf[o] as usize)
 								.unwrap_or_default(),
-							trace_node_id: trace_node_id_offset.map(|o| buf[o]).unwrap_or_default(),
-							detachedness: detachedness_offset
+							trace_node_id:trace_node_id_offset
+								.map(|o| buf[o])
+								.unwrap_or_default(),
+							detachedness:detachedness_offset
 								.map(|o| buf[o] as u32)
 								.unwrap_or_default(),
-							id: id_offset.map(|o| buf[o] as u32).unwrap_or_default(),
+							id:id_offset
+								.map(|o| buf[o] as u32)
+								.unwrap_or_default(),
 						});
 					}
 				}
@@ -259,10 +279,9 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 	// structure, so the return type is ().
 	type Value = ();
 
-	fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+	fn deserialize<D>(self, deserializer:D) -> Result<Self::Value, D::Error>
 	where
-		D: Deserializer<'de>,
-	{
+		D: Deserializer<'de>, {
 		// Visitor implementation that will walk an inner array of the JSON
 		// input.
 		struct EdgesVisitor<'a>(&'a Snapshot, &'a mut PetGraph);
@@ -270,14 +289,13 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 		impl<'de, 'a> Visitor<'de> for EdgesVisitor<'a> {
 			type Value = ();
 
-			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+			fn expecting(&self, formatter:&mut fmt::Formatter) -> fmt::Result {
 				write!(formatter, "an array of integers")
 			}
 
-			fn visit_seq<A>(self, mut seq: A) -> Result<(), A::Error>
+			fn visit_seq<A>(self, mut seq:A) -> Result<(), A::Error>
 			where
-				A: SeqAccess<'de>,
-			{
+				A: SeqAccess<'de>, {
 				let mut to_node_offset = None;
 				let mut name_or_index_offset = None;
 				let mut type_offset = None;
@@ -287,19 +305,23 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 						"to_node" => to_node_offset = Some(i),
 						"name_or_index" => name_or_index_offset = Some(i),
 						"type" => type_offset = Some(i),
-						_ => {}
+						_ => {},
 					}
 				}
 
-				let to_node_offset = to_node_offset.ok_or(de::Error::missing_field("to_node"))?;
-				let type_offset = type_offset.ok_or(de::Error::missing_field("type"))?;
-				let name_or_index_offset =
-					name_or_index_offset.ok_or(de::Error::missing_field("name_or_index"))?;
+				let to_node_offset = to_node_offset
+					.ok_or(de::Error::missing_field("to_node"))?;
+				let type_offset =
+					type_offset.ok_or(de::Error::missing_field("type"))?;
+				let name_or_index_offset = name_or_index_offset
+					.ok_or(de::Error::missing_field("name_or_index"))?;
 				let type_types = match self.0.meta.edge_types.get(type_offset) {
 					None => return Err(de::Error::missing_field("type")),
 					Some(StringOrArray::Single(_)) => {
-						return Err(de::Error::custom("edge `type` should be an array"))
-					}
+						return Err(de::Error::custom(
+							"edge `type` should be an array",
+						));
+					},
 					Some(StringOrArray::Arr(a)) => a,
 				};
 
@@ -307,41 +329,52 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 				let node_row_size = self.0.meta.node_fields.len();
 
 				// Each node own the next "edge_count" edges in the array.
-				let unexpected_end = || de::Error::custom("unexpected end of edges");
+				let unexpected_end =
+					|| de::Error::custom("unexpected end of edges");
 				let nodes_len = self.1.raw_nodes().len();
 				for from_index in 0..nodes_len {
-					let edge_count = self.1.raw_nodes()[from_index].weight.edge_count;
-					let from_index = petgraph::graph::NodeIndex::new(from_index);
+					let edge_count =
+						self.1.raw_nodes()[from_index].weight.edge_count;
+					let from_index =
+						petgraph::graph::NodeIndex::new(from_index);
 					for _ in 0..edge_count {
 						// we know that all the offsets exists and are within
 						// the row_size, so they must be assigned before getting
 						// to the add_edge method.
-						let mut typ: usize = unsafe { std::mem::zeroed() };
-						let mut to_index: usize = unsafe { std::mem::zeroed() };
-						let mut name_or_index: NameOrIndex = unsafe { std::mem::zeroed() };
+						let mut typ:usize = unsafe { std::mem::zeroed() };
+						let mut to_index:usize = unsafe { std::mem::zeroed() };
+						let mut name_or_index:NameOrIndex =
+							unsafe { std::mem::zeroed() };
 
 						for i in 0..row_size {
 							match i {
 								i if i == to_node_offset => {
-									to_index = seq.next_element()?.ok_or_else(unexpected_end)?;
-								}
+									to_index = seq
+										.next_element()?
+										.ok_or_else(unexpected_end)?;
+								},
 								i if i == name_or_index_offset => {
-									name_or_index =
-										seq.next_element()?.ok_or_else(unexpected_end)?;
-								}
+									name_or_index = seq
+										.next_element()?
+										.ok_or_else(unexpected_end)?;
+								},
 								i if i == type_offset => {
-									typ = seq.next_element()?.ok_or_else(unexpected_end)?;
-								}
-								_ => {}
+									typ = seq
+										.next_element()?
+										.ok_or_else(unexpected_end)?;
+								},
+								_ => {},
 							}
 						}
 
 						self.1.add_edge(
 							from_index,
-							petgraph::graph::NodeIndex::new(to_index / node_row_size),
+							petgraph::graph::NodeIndex::new(
+								to_index / node_row_size,
+							),
 							PGNodeEdge {
-								typ: EdgeType::from_str(type_types, typ),
-								name: name_or_index,
+								typ:EdgeType::from_str(type_types, typ),
+								name:name_or_index,
 							},
 						);
 					}
@@ -359,15 +392,15 @@ pub(crate) type PetGraph = petgraph::Graph<Node, PGNodeEdge>;
 
 #[derive(Debug)]
 pub struct Node {
-	name_index: usize,
-	strings: Option<Rc<Vec<String>>>,
+	name_index:usize,
+	strings:Option<Rc<Vec<String>>>,
 
-	pub typ: NodeType,
-	pub id: u32,
-	pub self_size: u64,
-	pub edge_count: usize,
-	pub trace_node_id: u64,
-	pub detachedness: u32,
+	pub typ:NodeType,
+	pub id:u32,
+	pub self_size:u64,
+	pub edge_count:usize,
+	pub trace_node_id:u64,
+	pub detachedness:u32,
 }
 
 impl Node {
@@ -427,7 +460,7 @@ impl NodeType {
 		}
 	}
 
-	fn from_str(strings: &[String], typ: usize) -> Self {
+	fn from_str(strings:&[String], typ:usize) -> Self {
 		match strings.get(typ).map(|s| s.as_str()) {
 			Some("hidden") => Self::Hidden,
 			Some("array") => Self::Array,
@@ -449,16 +482,16 @@ impl NodeType {
 
 #[derive(Debug)]
 pub struct NodeEdge {
-	pub typ: EdgeType,
-	pub from_index: usize,
-	pub to_index: usize,
-	pub name: NameOrIndex,
+	pub typ:EdgeType,
+	pub from_index:usize,
+	pub to_index:usize,
+	pub name:NameOrIndex,
 }
 
 #[derive(Debug)]
 pub struct PGNodeEdge {
-	pub typ: EdgeType,
-	pub name: NameOrIndex,
+	pub typ:EdgeType,
+	pub name:NameOrIndex,
 }
 
 #[derive(Debug, Deserialize)]
@@ -484,7 +517,7 @@ pub enum EdgeType {
 }
 
 impl From<EdgeType> for u8 {
-	fn from(t: EdgeType) -> u8 {
+	fn from(t:EdgeType) -> u8 {
 		match t {
 			EdgeType::Context => 0,
 			EdgeType::Element => 1,
@@ -500,7 +533,7 @@ impl From<EdgeType> for u8 {
 }
 
 impl Display for EdgeType {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		match self {
 			EdgeType::Context => write!(f, "context"),
 			EdgeType::Element => write!(f, "element"),
@@ -516,7 +549,7 @@ impl Display for EdgeType {
 }
 
 impl EdgeType {
-	fn from_str(strings: &[String], index: usize) -> Self {
+	fn from_str(strings:&[String], index:usize) -> Self {
 		match strings.get(index).map(|s| s.as_str()) {
 			Some("context") => Self::Context,
 			Some("element") => Self::Element,
@@ -531,7 +564,9 @@ impl EdgeType {
 	}
 }
 
-pub fn decode_reader(input: impl std::io::Read) -> Result<Graph, serde_json::Error> {
+pub fn decode_reader(
+	input:impl std::io::Read,
+) -> Result<Graph, serde_json::Error> {
 	// todo@connor412: parsing the JSON takes the majority of time when parsing
 	// a graph. We might be faster if we use DeserializeSeed to parse data
 	// directly into the graph structure.
@@ -543,7 +578,7 @@ pub fn decode_reader(input: impl std::io::Read) -> Result<Graph, serde_json::Err
 	})
 }
 
-pub fn decode_slice(input: &[u8]) -> Result<Graph, serde_json::Error> {
+pub fn decode_slice(input:&[u8]) -> Result<Graph, serde_json::Error> {
 	let perf = PerfCounter::new("json_decode");
 	serde_json::from_slice(input).map(|b| {
 		drop(perf);
@@ -551,7 +586,7 @@ pub fn decode_slice(input: &[u8]) -> Result<Graph, serde_json::Error> {
 	})
 }
 
-pub fn decode_str(input: &str) -> Result<Graph, serde_json::Error> {
+pub fn decode_str(input:&str) -> Result<Graph, serde_json::Error> {
 	let perf = PerfCounter::new("json_decode");
 	serde_json::from_str(input).map(|b| {
 		drop(perf);
@@ -561,11 +596,11 @@ pub fn decode_str(input: &str) -> Result<Graph, serde_json::Error> {
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen]
-pub fn decode_bytes(input: &[u8]) -> std::result::Result<Graph, String> {
+pub fn decode_bytes(input:&[u8]) -> std::result::Result<Graph, String> {
 	decode_slice(input).map_err(|e| e.to_string())
 }
 
-fn to_graph(root: Root) -> Graph {
+fn to_graph(root:Root) -> Graph {
 	let _perf = PerfCounter::new("init_graph");
 	let root_index = root.snapshot.root_index.unwrap_or_default();
 	Graph::new(root.graph, root_index, root.strings)
@@ -573,8 +608,9 @@ fn to_graph(root: Root) -> Graph {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use std::fs;
+
+	use super::*;
 
 	#[test]
 	fn test_basic_heapsnapshot() {

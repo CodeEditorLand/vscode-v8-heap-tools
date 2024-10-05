@@ -9,32 +9,33 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
 	decoder::{NodeType, PetGraph},
-	ClassGroup, EdgeType, Graph, Node,
+	ClassGroup,
+	EdgeType,
+	Graph,
+	Node,
 };
 
 #[wasm_bindgen]
-pub fn init_panic_hook() {
-	console_error_panic_hook::set_once();
-}
+pub fn init_panic_hook() { console_error_panic_hook::set_once(); }
 
 #[wasm_bindgen(js_name = ClassGroup)]
 pub struct WasmClassGroup {
-	graph: Rc<PetGraph>,
-	first_index: usize,
+	graph:Rc<PetGraph>,
+	first_index:usize,
 
-	pub self_size: u64,
-	pub retained_size: u64,
-	pub children_len: usize,
+	pub self_size:u64,
+	pub retained_size:u64,
+	pub children_len:usize,
 }
 
 impl WasmClassGroup {
-	fn new(group: &ClassGroup, graph: Rc<PetGraph>) -> Self {
+	fn new(group:&ClassGroup, graph:Rc<PetGraph>) -> Self {
 		Self {
 			graph,
-			first_index: group.index,
-			self_size: group.self_size,
-			retained_size: group.retained_size,
-			children_len: group.nodes.len(),
+			first_index:group.index,
+			self_size:group.self_size,
+			retained_size:group.retained_size,
+			children_len:group.nodes.len(),
 		}
 	}
 }
@@ -67,7 +68,7 @@ pub enum WasmNodeType {
 }
 
 impl From<NodeType> for WasmNodeType {
-	fn from(t: NodeType) -> Self {
+	fn from(t:NodeType) -> Self {
 		match t {
 			NodeType::Hidden => WasmNodeType::Hidden,
 			NodeType::Array => WasmNodeType::Array,
@@ -102,7 +103,7 @@ pub enum WasmEdgeType {
 }
 
 impl From<EdgeType> for WasmEdgeType {
-	fn from(t: EdgeType) -> Self {
+	fn from(t:EdgeType) -> Self {
 		match t {
 			EdgeType::Context => WasmEdgeType::Context,
 			EdgeType::Element => WasmEdgeType::Element,
@@ -119,14 +120,14 @@ impl From<EdgeType> for WasmEdgeType {
 
 #[wasm_bindgen(js_name = Node)]
 pub struct WasmNode {
-	graph: Rc<PetGraph>,
+	graph:Rc<PetGraph>,
 
-	pub children_len: usize,
-	pub self_size: u64,
-	pub retained_size: u64,
-	pub index: usize,
-	pub typ: WasmNodeType,
-	pub id: u32,
+	pub children_len:usize,
+	pub self_size:u64,
+	pub retained_size:u64,
+	pub index:usize,
+	pub typ:WasmNodeType,
+	pub id:u32,
 }
 
 #[wasm_bindgen(js_class = Node)]
@@ -139,16 +140,16 @@ impl WasmNode {
 
 #[wasm_bindgen(js_name = RetainerNode)]
 pub struct WasmRetainerNode {
-	graph: Rc<PetGraph>,
+	graph:Rc<PetGraph>,
 
-	pub retains_index: usize,
-	pub children_len: usize,
-	pub self_size: u64,
-	pub retained_size: u64,
-	pub index: usize,
-	pub typ: WasmNodeType,
-	pub id: u32,
-	pub edge_typ: WasmEdgeType,
+	pub retains_index:usize,
+	pub children_len:usize,
+	pub self_size:u64,
+	pub retained_size:u64,
+	pub index:usize,
+	pub typ:WasmNodeType,
+	pub id:u32,
+	pub edge_typ:WasmEdgeType,
 }
 
 #[wasm_bindgen(js_class = RetainerNode)]
@@ -169,17 +170,19 @@ pub enum WasmSortBy {
 }
 
 struct SortedNode<'a> {
-	sort: WasmSortBy,
-	index: usize,
-	retained_size: u64,
-	node: &'a Node,
+	sort:WasmSortBy,
+	index:usize,
+	retained_size:u64,
+	node:&'a Node,
 }
 
 impl<'a> PartialEq for SortedNode<'a> {
-	fn eq(&self, other: &Self) -> bool {
+	fn eq(&self, other:&Self) -> bool {
 		match self.sort {
 			WasmSortBy::SelfSize => self.node.self_size == other.node.self_size,
-			WasmSortBy::RetainedSize => self.retained_size == other.retained_size,
+			WasmSortBy::RetainedSize => {
+				self.retained_size == other.retained_size
+			},
 			WasmSortBy::Name => self.node.name() == other.node.name(),
 		}
 	}
@@ -188,17 +191,21 @@ impl<'a> PartialEq for SortedNode<'a> {
 impl<'a> Eq for SortedNode<'a> {}
 
 impl<'a> Ord for SortedNode<'a> {
-	fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+	fn cmp(&self, other:&Self) -> std::cmp::Ordering {
 		match self.sort {
-			WasmSortBy::SelfSize => self.node.self_size.cmp(&other.node.self_size).reverse(),
-			WasmSortBy::RetainedSize => self.retained_size.cmp(&other.retained_size).reverse(),
+			WasmSortBy::SelfSize => {
+				self.node.self_size.cmp(&other.node.self_size).reverse()
+			},
+			WasmSortBy::RetainedSize => {
+				self.retained_size.cmp(&other.retained_size).reverse()
+			},
 			WasmSortBy::Name => self.node.name().cmp(other.node.name()),
 		}
 	}
 }
 
 impl<'a> PartialOrd for SortedNode<'a> {
-	fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+	fn partial_cmp(&self, other:&Self) -> Option<std::cmp::Ordering> {
 		Some(self.cmp(other))
 	}
 }
@@ -209,9 +216,9 @@ impl Graph {
 	#[wasm_bindgen(js_name = get_class_groups)]
 	pub fn get_class_groups_wasm(
 		&self,
-		start: usize,
-		end: usize,
-		no_retained: bool,
+		start:usize,
+		end:usize,
+		no_retained:bool,
 	) -> Vec<WasmClassGroup> {
 		let groups = self.get_class_groups(no_retained);
 		groups[start..min(end, groups.len())]
@@ -222,7 +229,7 @@ impl Graph {
 
 	/// Gets a count of nodes of each class name
 	#[wasm_bindgen(js_name = get_class_counts)]
-	pub fn get_class_counts_wasm(&self, class_names: Vec<String>) -> Vec<u32> {
+	pub fn get_class_counts_wasm(&self, class_names:Vec<String>) -> Vec<u32> {
 		let mut out = vec![0; class_names.len()];
 
 		for node in self.nodes().iter() {
@@ -238,10 +245,10 @@ impl Graph {
 	#[wasm_bindgen(js_name = class_children)]
 	pub fn class_children_wasm(
 		&self,
-		index: usize,
-		start: usize,
-		end: usize,
-		sort_by: WasmSortBy,
+		index:usize,
+		start:usize,
+		end:usize,
+		sort_by:WasmSortBy,
 	) -> Vec<WasmNode> {
 		self.get_class_groups(false)
 			.get(index)
@@ -259,13 +266,19 @@ impl Graph {
 	#[wasm_bindgen(js_name = node_children)]
 	pub fn node_children_wasm(
 		&self,
-		parent: usize,
-		start: usize,
-		end: usize,
-		sort_by: WasmSortBy,
+		parent:usize,
+		start:usize,
+		end:usize,
+		sort_by:WasmSortBy,
 	) -> Vec<WasmNode> {
-		let children = self.graph().edges(petgraph::graph::NodeIndex::new(parent));
-		self.children_of_something(children.map(|c| c.target()), start, end, sort_by)
+		let children =
+			self.graph().edges(petgraph::graph::NodeIndex::new(parent));
+		self.children_of_something(
+			children.map(|c| c.target()),
+			start,
+			end,
+			sort_by,
+		)
 	}
 
 	/// Gets all nodes that retain the given index. Each structure returns
@@ -273,8 +286,8 @@ impl Graph {
 	#[wasm_bindgen(js_name = get_all_retainers)]
 	pub fn get_all_retainers_wasm(
 		&self,
-		index: usize,
-		max_distance: usize,
+		index:usize,
+		max_distance:usize,
 	) -> Vec<WasmRetainerNode> {
 		let graph = self.graph();
 
@@ -283,18 +296,23 @@ impl Graph {
 		let mut q = VecDeque::new();
 
 		let mut visited = HashSet::new();
-		q.push_front((0, index, WasmEdgeType::Internal, petgraph::graph::NodeIndex::new(index)));
+		q.push_front((
+			0,
+			index,
+			WasmEdgeType::Internal,
+			petgraph::graph::NodeIndex::new(index),
+		));
 
 		while let Some((distance, retains_index, edge_typ, i)) = q.pop_front() {
 			if let Some(n) = graph.node_weight(i) {
 				out.push(WasmRetainerNode {
-					graph: self.inner.clone(),
-					index: i.index(),
-					id: n.id,
-					children_len: n.edge_count,
-					typ: n.typ.into(),
-					retained_size: self.retained_size(i.index()),
-					self_size: n.self_size,
+					graph:self.inner.clone(),
+					index:i.index(),
+					id:n.id,
+					children_len:n.edge_count,
+					typ:n.typ.into(),
+					retained_size:self.retained_size(i.index()),
+					self_size:n.self_size,
 					retains_index,
 					edge_typ,
 				});
@@ -312,11 +330,18 @@ impl Graph {
 
 				visited.insert(src_index);
 				let typ = edge.weight().typ;
-				if src_index == self.root_index || !self.is_essential_edge(src_index, &typ) {
+				if src_index == self.root_index
+					|| !self.is_essential_edge(src_index, &typ)
+				{
 					continue;
 				}
 
-				q.push_back((distance + 1, i.index(), typ.into(), edge.source()))
+				q.push_back((
+					distance + 1,
+					i.index(),
+					typ.into(),
+					edge.source(),
+				))
 			}
 		}
 
@@ -331,23 +356,24 @@ impl Graph {
 	/// re-sorting, at the cost of memory usage.
 	fn children_of_something(
 		&self,
-		iter: impl Iterator<Item = petgraph::graph::NodeIndex<u32>>,
-		start: usize,
-		end: usize,
-		sort_by: WasmSortBy,
+		iter:impl Iterator<Item = petgraph::graph::NodeIndex<u32>>,
+		start:usize,
+		end:usize,
+		sort_by:WasmSortBy,
 	) -> Vec<WasmNode> {
 		let graph = self.graph();
 		// Use a binary heap to let us do an insertion sort. This is better than
 		// cloning and quicksorting the entire list of nodes, because we know we
 		// don't need anything past the 'end' index.
-		let mut heap = BinaryHeap::with_capacity(min(end + 1, graph.node_count()));
+		let mut heap =
+			BinaryHeap::with_capacity(min(end + 1, graph.node_count()));
 
 		for child in iter {
 			let sorted = SortedNode {
-				node: graph.node_weight(child).unwrap(),
-				index: child.index(),
-				sort: sort_by,
-				retained_size: self.retained_size(child.index()),
+				node:graph.node_weight(child).unwrap(),
+				index:child.index(),
+				sort:sort_by,
+				retained_size:self.retained_size(child.index()),
 			};
 
 			heap.push(sorted);
@@ -365,13 +391,13 @@ impl Graph {
 		for _ in start..end {
 			if let Some(n) = heap.pop() {
 				result.push(WasmNode {
-					graph: self.inner.clone(),
-					index: n.index,
-					id: n.node.id,
-					children_len: n.node.edge_count,
-					typ: n.node.typ.into(),
-					retained_size: n.retained_size,
-					self_size: n.node.self_size,
+					graph:self.inner.clone(),
+					index:n.index,
+					id:n.node.id,
+					children_len:n.node.edge_count,
+					typ:n.node.typ.into(),
+					retained_size:n.retained_size,
+					self_size:n.node.self_size,
 				});
 			}
 		}

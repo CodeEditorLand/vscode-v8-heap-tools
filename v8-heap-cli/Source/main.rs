@@ -26,12 +26,13 @@ fn main() -> Result<(), Error> {
 			let stdin = std::io::stdin();
 			let stdin = stdin.lock();
 			v8_heap_parser::decode_reader(BufReader::new(stdin))?
-		}
+		},
 		f => {
 			let path = PathBuf::from(f);
-			let file = std::fs::File::open(path).map_err(Error::CouldNotReadInput)?;
+			let file =
+				std::fs::File::open(path).map_err(Error::CouldNotReadInput)?;
 			v8_heap_parser::decode_reader(BufReader::new(file))?
-		}
+		},
 	};
 
 	if !cli.op.is_empty() {
@@ -49,25 +50,29 @@ fn main() -> Result<(), Error> {
 	Ok(())
 }
 
-fn do_print_summary(graph: &Graph, cli: Cli) {
+fn do_print_summary(graph:&Graph, cli:Cli) {
 	let depth = match cli.depth {
 		0 => cli.node_id.len(),
 		n => n,
 	};
 
 	let r = print_summary(&SummaryOptions {
-		sort_by: match cli.no_retained {
+		sort_by:match cli.no_retained {
 			true => SortBy::ShallowSize,
 			false => cli.sort_by,
 		},
-		format: cli.format,
+		format:cli.format,
 		graph,
-		no_retained: cli.no_retained,
-		query: (0..=depth)
-			.map(|d| match (cli.node_id.get(d), &cli.grep) {
-				(Some(id), _) => QueryOpt::Id(*id),
-				(_, Some(g)) if d == cli.node_id.len() => QueryOpt::Name(g.to_string()),
-				_ => QueryOpt::Top(cli.top),
+		no_retained:cli.no_retained,
+		query:(0..=depth)
+			.map(|d| {
+				match (cli.node_id.get(d), &cli.grep) {
+					(Some(id), _) => QueryOpt::Id(*id),
+					(_, Some(g)) if d == cli.node_id.len() => {
+						QueryOpt::Name(g.to_string())
+					},
+					_ => QueryOpt::Top(cli.top),
+				}
 			})
 			.collect(),
 	});
@@ -75,7 +80,7 @@ fn do_print_summary(graph: &Graph, cli: Cli) {
 	print!("{}", r);
 }
 
-fn print_divider(format: Format, args: &[String]) {
+fn print_divider(format:Format, args:&[String]) {
 	if let Format::Text = format {
 		println!();
 		println!("{}:", args.join(" "));

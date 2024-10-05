@@ -1,71 +1,54 @@
 use std::fmt::Write;
 
-use crate::cli::{Format, SortBy};
 use num_format::{Locale, ToFormattedString};
 use serde_json::json;
 use v8_heap_parser::{ClassGroup, Graph, Node};
 
+use crate::cli::{Format, SortBy};
+
 struct TopLevelGroup<'a> {
-	group: &'a ClassGroup,
-	root: &'a Node,
+	group:&'a ClassGroup,
+	root:&'a Node,
 }
 
 struct NodeWithSize<'a> {
-	retained_size: u64,
-	index: usize,
-	node: &'a Node,
+	retained_size:u64,
+	index:usize,
+	node:&'a Node,
 }
 
 trait SummarizableNode {
 	fn id(&self) -> u64;
-	fn children(&self, graph: &Graph) -> Vec<usize>;
+	fn children(&self, graph:&Graph) -> Vec<usize>;
 	fn name(&self) -> &str;
 	fn retained_size(&self) -> u64;
 	fn shallow_size(&self) -> u64;
 }
 
 impl<'a> SummarizableNode for TopLevelGroup<'a> {
-	fn id(&self) -> u64 {
-		self.group.index as u64
-	}
+	fn id(&self) -> u64 { self.group.index as u64 }
 
-	fn children(&self, _graph: &Graph) -> Vec<usize> {
-		self.group.nodes.clone()
-	}
+	fn children(&self, _graph:&Graph) -> Vec<usize> { self.group.nodes.clone() }
 
-	fn name(&self) -> &str {
-		self.root.class_name()
-	}
+	fn name(&self) -> &str { self.root.class_name() }
 
-	fn retained_size(&self) -> u64 {
-		self.group.retained_size
-	}
+	fn retained_size(&self) -> u64 { self.group.retained_size }
 
-	fn shallow_size(&self) -> u64 {
-		self.group.self_size
-	}
+	fn shallow_size(&self) -> u64 { self.group.self_size }
 }
 
 impl<'a> SummarizableNode for NodeWithSize<'a> {
-	fn id(&self) -> u64 {
-		self.node.id as u64
-	}
+	fn id(&self) -> u64 { self.node.id as u64 }
 
-	fn children(&self, graph: &Graph) -> Vec<usize> {
+	fn children(&self, graph:&Graph) -> Vec<usize> {
 		graph.children(self.index)
 	}
 
-	fn name(&self) -> &str {
-		self.node.name()
-	}
+	fn name(&self) -> &str { self.node.name() }
 
-	fn retained_size(&self) -> u64 {
-		self.retained_size
-	}
+	fn retained_size(&self) -> u64 { self.retained_size }
 
-	fn shallow_size(&self) -> u64 {
-		self.node.self_size
-	}
+	fn shallow_size(&self) -> u64 { self.node.self_size }
 }
 
 pub enum QueryOpt {
@@ -75,7 +58,7 @@ pub enum QueryOpt {
 }
 
 impl QueryOpt {
-	fn test(&self, order_index: usize, node: &impl SummarizableNode) -> bool {
+	fn test(&self, order_index:usize, node:&impl SummarizableNode) -> bool {
 		match self {
 			QueryOpt::Top(n) => order_index < *n,
 			QueryOpt::Id(i) => *i == node.id(),
@@ -86,23 +69,28 @@ impl QueryOpt {
 
 pub struct SummaryOptions<'a> {
 	/// Sort order
-	pub sort_by: SortBy,
+	pub sort_by:SortBy,
 	/// Output format.
-	pub format: Format,
+	pub format:Format,
 	/// Graph to display
-	pub graph: &'a Graph,
+	pub graph:&'a Graph,
 	/// List of queries to apply at each level of the graph.
-	pub query: Vec<QueryOpt>,
+	pub query:Vec<QueryOpt>,
 	/// Skip calculation of retained sizes.
-	pub no_retained: bool,
+	pub no_retained:bool,
 }
 
-pub fn print_summary(opts: &SummaryOptions) -> String {
+pub fn print_summary(opts:&SummaryOptions) -> String {
 	let groups = opts
 		.graph
 		.get_class_groups(opts.no_retained)
 		.iter()
-		.map(|g| TopLevelGroup { group: g, root: opts.graph.get_node(g.nodes[0]).unwrap() })
+		.map(|g| {
+			TopLevelGroup {
+				group:g,
+				root:opts.graph.get_node(g.nodes[0]).unwrap(),
+			}
+		})
 		.collect::<Vec<_>>();
 
 	let mut output = String::with_capacity(1024);
@@ -121,36 +109,36 @@ pub fn print_summary(opts: &SummaryOptions) -> String {
 	output
 }
 
-fn format_print_start(output: &mut String, format: Format) {
+fn format_print_start(output:&mut String, format:Format) {
 	if let Format::Json = format {
 		output.push('[');
 	}
 }
-fn format_print_end(output: &mut String, format: Format) {
+fn format_print_end(output:&mut String, format:Format) {
 	if let Format::Json = format {
 		output.push_str("]\n");
 	}
 }
 
-fn format_print_children_start(output: &mut String, format: Format) {
+fn format_print_children_start(output:&mut String, format:Format) {
 	if let Format::Json = format {
 		output.pop(); // remove last '{'
 		output.push_str(",\"children\":[");
 	}
 }
-fn format_print_children_end(output: &mut String, format: Format) {
+fn format_print_children_end(output:&mut String, format:Format) {
 	if let Format::Json = format {
 		output.push_str("]}");
 	}
 }
 
 fn format_print_node(
-	order_index: usize,
-	node: &impl SummarizableNode,
-	format: Format,
-	depth: usize,
-	output: &mut String,
-	num_children: usize,
+	order_index:usize,
+	node:&impl SummarizableNode,
+	format:Format,
+	depth:usize,
+	output:&mut String,
+	num_children:usize,
 ) {
 	match format {
 		Format::Json => {
@@ -168,7 +156,7 @@ fn format_print_node(
 				})
 			)
 			.unwrap();
-		}
+		},
 		Format::Text => {
 			let name = node.name();
 			for _ in 0..depth {
@@ -183,37 +171,42 @@ fn format_print_node(
 				output.push_str(name);
 			}
 			output.push_str(" self size ");
-			output.push_str(&node.shallow_size().to_formatted_string(&Locale::en));
+			output.push_str(
+				&node.shallow_size().to_formatted_string(&Locale::en),
+			);
 			output.push_str(" / retained size ");
-			output.push_str(&node.retained_size().to_formatted_string(&Locale::en));
+			output.push_str(
+				&node.retained_size().to_formatted_string(&Locale::en),
+			);
 
 			if num_children > 0 {
 				output.push_str(&format!(" x{}", num_children));
 			}
 			output.push_str(&format!(" @ {}\n", node.id()));
-		}
+		},
 	}
 }
 
 fn print_summary_inner<T>(
-	graph: &Graph,
-	sort_by: SortBy,
-	format: Format,
-	nodes: &[T],
-	query: &[QueryOpt],
-	depth: usize,
-	output: &mut String,
+	graph:&Graph,
+	sort_by:SortBy,
+	format:Format,
+	nodes:&[T],
+	query:&[QueryOpt],
+	depth:usize,
+	output:&mut String,
 ) where
-	T: SummarizableNode,
-{
+	T: SummarizableNode, {
 	let mut node_indexes = (0..nodes.len()).collect::<Vec<_>>();
 	match sort_by {
 		SortBy::ShallowSize => {
-			node_indexes.sort_by_key(|g| std::cmp::Reverse(nodes[*g].shallow_size()))
-		}
+			node_indexes
+				.sort_by_key(|g| std::cmp::Reverse(nodes[*g].shallow_size()))
+		},
 		SortBy::RetainedSize => {
-			node_indexes.sort_by_key(|g| std::cmp::Reverse(nodes[*g].retained_size()))
-		}
+			node_indexes
+				.sort_by_key(|g| std::cmp::Reverse(nodes[*g].retained_size()))
+		},
 	}
 
 	let this_query = query.get(depth).unwrap();
@@ -226,22 +219,39 @@ fn print_summary_inner<T>(
 		}
 
 		let children = node.children(graph);
-		format_print_node(order_index, node, format, depth, output, children.len());
+		format_print_node(
+			order_index,
+			node,
+			format,
+			depth,
+			output,
+			children.len(),
+		);
 		order_index += 1;
 
 		if depth + 1 < query.len() {
-			let children: Vec<NodeWithSize> = children
+			let children:Vec<NodeWithSize> = children
 				.into_iter()
-				.map(|i| NodeWithSize {
-					index: i,
-					node: graph.get_node(i).unwrap(),
-					retained_size: graph.retained_size(i),
+				.map(|i| {
+					NodeWithSize {
+						index:i,
+						node:graph.get_node(i).unwrap(),
+						retained_size:graph.retained_size(i),
+					}
 				})
 				.collect();
 
 			if !children.is_empty() {
 				format_print_children_start(output, format);
-				print_summary_inner(graph, sort_by, format, &children, query, depth + 1, output);
+				print_summary_inner(
+					graph,
+					sort_by,
+					format,
+					&children,
+					query,
+					depth + 1,
+					output,
+				);
 				format_print_children_end(output, format);
 			}
 		}

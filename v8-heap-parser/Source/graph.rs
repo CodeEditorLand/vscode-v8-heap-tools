@@ -4,35 +4,36 @@ use std::{
 	rc::Rc,
 };
 
-use crate::{decoder::*, perf::PerfCounter};
 use petgraph::visit::EdgeRef;
+
+use crate::{decoder::*, perf::PerfCounter};
 
 /// Maps node indices to and back from the DFS order.
 struct PostOrder {
 	// Node index to the order in which they're iterated
-	index_to_order: Vec<usize>,
+	index_to_order:Vec<usize>,
 	// Order in which nodes are iterated to the node index
-	order_to_index: Vec<usize>,
+	order_to_index:Vec<usize>,
 }
 
 struct DominatedNodes {
-	first_dom_node_index: Vec<usize>,
-	dominated_nodes: Vec<usize>,
+	first_dom_node_index:Vec<usize>,
+	dominated_nodes:Vec<usize>,
 }
 
 struct Retaining {
-	nodes: Vec<usize>,
-	edges: Vec<usize>,
-	first_retainer: Vec<usize>,
-	first_edge: Vec<usize>,
+	nodes:Vec<usize>,
+	edges:Vec<usize>,
+	first_retainer:Vec<usize>,
+	first_edge:Vec<usize>,
 }
 
 #[derive(Clone)]
 pub struct ClassGroup {
-	pub index: usize,
-	pub self_size: u64,
-	pub retained_size: u64,
-	pub nodes: Vec<usize>,
+	pub index:usize,
+	pub self_size:u64,
+	pub retained_size:u64,
+	pub nodes:Vec<usize>,
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -41,51 +42,56 @@ use wasm_bindgen::prelude::*;
 #[cfg_attr(target_arch = "wasm32", wasm_bindgen)]
 pub struct Graph {
 	// Much of the code in the Graph is based on that in the Chrome DevTools
-	// (see LICENSE). We used Github Copilot to do the bulk of the translation from
-	// TypeScript to Rust, with ample hand-editing afterwards. Chrome DevTools
-	// prefers to store all node/edge information in equivalently-lengthed arrays,
-	// which makes V8 very happy. In native code, we can do things a little more
-	// efficiently, but there's still chunks of the graph that mirror devtools and
-	// could be made more idiomatic.
-	pub(crate) inner: Rc<PetGraph>,
-	pub root_index: usize,
-	strings: Rc<Vec<String>>,
-	dominators: UnsafeCell<Option<Vec<usize>>>,
-	retained_sizes: UnsafeCell<Option<Vec<u64>>>,
-	flags: UnsafeCell<Option<Flags>>,
-	retainers: UnsafeCell<Option<Retaining>>,
-	post_order: UnsafeCell<Option<PostOrder>>,
-	dominated_nodes: UnsafeCell<Option<DominatedNodes>>,
-	class_groups: UnsafeCell<Option<Vec<ClassGroup>>>,
+	// (see LICENSE). We used Github Copilot to do the bulk of the translation
+	// from TypeScript to Rust, with ample hand-editing afterwards. Chrome
+	// DevTools prefers to store all node/edge information in
+	// equivalently-lengthed arrays, which makes V8 very happy. In native
+	// code, we can do things a little more efficiently, but there's still
+	// chunks of the graph that mirror devtools and could be made more
+	// idiomatic.
+	pub(crate) inner:Rc<PetGraph>,
+	pub root_index:usize,
+	strings:Rc<Vec<String>>,
+	dominators:UnsafeCell<Option<Vec<usize>>>,
+	retained_sizes:UnsafeCell<Option<Vec<u64>>>,
+	flags:UnsafeCell<Option<Flags>>,
+	retainers:UnsafeCell<Option<Retaining>>,
+	post_order:UnsafeCell<Option<PostOrder>>,
+	dominated_nodes:UnsafeCell<Option<DominatedNodes>>,
+	class_groups:UnsafeCell<Option<Vec<ClassGroup>>>,
 }
 
 mod flag {
-	pub const CAN_BE_QUERIED: u8 = 1 << 0;
-	pub const DETACHED_DOM_TREE_NODE: u8 = 1 << 1;
-	pub const PAGE_OBJECT: u8 = 1 << 2;
+	pub const CAN_BE_QUERIED:u8 = 1 << 0;
+	pub const DETACHED_DOM_TREE_NODE:u8 = 1 << 1;
+	pub const PAGE_OBJECT:u8 = 1 << 2;
 }
 
 struct Flags(Vec<u8>);
 
 impl Flags {
-	pub fn test(&self, index: usize, flag: u8) -> bool {
+	pub fn test(&self, index:usize, flag:u8) -> bool {
 		(self.0[index] & flag) != 0
 	}
 }
 
 impl Graph {
-	pub(crate) fn new(inner: PetGraph, root_index: usize, strings: Rc<Vec<String>>) -> Self {
+	pub(crate) fn new(
+		inner:PetGraph,
+		root_index:usize,
+		strings:Rc<Vec<String>>,
+	) -> Self {
 		Self {
-			inner: Rc::new(inner),
+			inner:Rc::new(inner),
 			root_index,
 			strings,
-			dominators: UnsafeCell::new(None),
-			retained_sizes: UnsafeCell::new(None),
-			retainers: UnsafeCell::new(None),
-			post_order: UnsafeCell::new(None),
-			flags: UnsafeCell::new(None),
-			dominated_nodes: UnsafeCell::new(None),
-			class_groups: UnsafeCell::new(None),
+			dominators:UnsafeCell::new(None),
+			retained_sizes:UnsafeCell::new(None),
+			retainers:UnsafeCell::new(None),
+			post_order:UnsafeCell::new(None),
+			flags:UnsafeCell::new(None),
+			dominated_nodes:UnsafeCell::new(None),
+			class_groups:UnsafeCell::new(None),
 		}
 	}
 
@@ -95,36 +101,37 @@ impl Graph {
 	}
 
 	/// Gets a node by its index.
-	pub fn get_node(&self, index: usize) -> Option<&Node> {
+	pub fn get_node(&self, index:usize) -> Option<&Node> {
 		self.inner.raw_nodes().get(index).map(|n| &n.weight)
 	}
 
 	/// Gets a string by its index. Indexed strings are exposed in the 'Other'
 	/// type in Node and Edge types.
-	pub fn get_indexed_string(&self, index: usize) -> Option<&str> {
+	pub fn get_indexed_string(&self, index:usize) -> Option<&str> {
 		self.strings.get(index).map(|s| s.as_str())
 	}
 
-	pub(crate) fn graph(&self) -> &PetGraph {
-		&self.inner
-	}
+	pub(crate) fn graph(&self) -> &PetGraph { &self.inner }
 
 	/// Gets an iterator over the graph nodes.
 	pub fn iter(&self) -> NodeIterator<'_> {
-		NodeIterator { graph: self.graph(), index: 0 }
+		NodeIterator { graph:self.graph(), index:0 }
 	}
 
 	/// Gets a list children of the node at the given index.
-	pub fn children(&self, parent: usize) -> Vec<usize> {
+	pub fn children(&self, parent:usize) -> Vec<usize> {
 		let graph = self.graph();
 
-		graph.neighbors(petgraph::graph::NodeIndex::new(parent)).map(|n| n.index()).collect()
+		graph
+			.neighbors(petgraph::graph::NodeIndex::new(parent))
+			.map(|n| n.index())
+			.collect()
 	}
 
 	/// Gets the retained size of a node in the graph. This is the size this
 	/// node specifically requires the program to retain., i.e. the nodes
 	/// the given node dominates <https://en.wikipedia.org/wiki/Dominator_(graph_theory)>
-	pub fn retained_size(&self, node_index: usize) -> u64 {
+	pub fn retained_size(&self, node_index:usize) -> u64 {
 		let retained_sizes = unsafe { &mut *self.retained_sizes.get() };
 
 		if retained_sizes.is_none() {
@@ -163,7 +170,9 @@ impl Graph {
 			let range = match self.root_index {
 				0 => 1..graph.node_count(),
 				i if i == graph.node_count() - 1 => 0..graph.node_count() - 1,
-				i => panic!("expected root index to be first or last, was {}", i),
+				i => {
+					panic!("expected root index to be first or last, was {}", i)
+				},
 			};
 
 			// clone the range as it's used again later
@@ -176,22 +185,26 @@ impl Graph {
 			for i in 0..graph.node_count() {
 				let dominated_count = first_dom_node_index[i];
 				if i < graph.node_count() - 1 {
-					dominated_nodes[first_dominated_node_index] = dominated_count;
+					dominated_nodes[first_dominated_node_index] =
+						dominated_count;
 				}
 				first_dom_node_index[i] = first_dominated_node_index;
 				first_dominated_node_index += dominated_count;
 			}
-			first_dom_node_index[graph.node_count()] = dominated_nodes.len() - 1;
+			first_dom_node_index[graph.node_count()] =
+				dominated_nodes.len() - 1;
 
 			for node_index in range {
 				let dominator_ordinal = dominators_tree[node_index];
-				let mut dominated_ref_index = first_dom_node_index[dominator_ordinal];
+				let mut dominated_ref_index =
+					first_dom_node_index[dominator_ordinal];
 				dominated_nodes[dominated_ref_index] -= 1;
 				dominated_ref_index += dominated_nodes[dominated_ref_index];
 				dominated_nodes[dominated_ref_index] = node_index;
 			}
 
-			*dominated_nodes_o = Some(DominatedNodes { dominated_nodes, first_dom_node_index });
+			*dominated_nodes_o =
+				Some(DominatedNodes { dominated_nodes, first_dom_node_index });
 		}
 
 		dominated_nodes_o.as_ref().unwrap()
@@ -199,7 +212,7 @@ impl Graph {
 
 	/// Gets top-level groups for classes to show in a summary view. Sorted by
 	/// retained size descending by default.
-	pub fn get_class_groups(&self, no_retained: bool) -> &[ClassGroup] {
+	pub fn get_class_groups(&self, no_retained:bool) -> &[ClassGroup] {
 		let class_groups = unsafe { &mut *self.class_groups.get() };
 
 		if class_groups.is_none() {
@@ -209,9 +222,9 @@ impl Graph {
 				let name = node.weight.class_name();
 				let group = groups.entry(name).or_insert(ClassGroup {
 					index,
-					self_size: 0,
-					retained_size: 0,
-					nodes: vec![],
+					self_size:0,
+					retained_size:0,
+					nodes:vec![],
 				});
 
 				group.self_size += node.weight.self_size;
@@ -226,14 +239,16 @@ impl Graph {
 				let mut classes = vec![];
 				queue.push_back(self.root_index);
 
-				let mut seen_groups: HashSet<&str> = HashSet::new();
+				let mut seen_groups:HashSet<&str> = HashSet::new();
 				while let Some(node_index) = queue.pop_back() {
 					let node = &nodes[node_index];
 					let name = node.weight.class_name();
 					let seen = seen_groups.contains(name);
 
-					let dominated_index_from = dominators.first_dom_node_index[node_index];
-					let dominated_index_to = dominators.first_dom_node_index[node_index + 1];
+					let dominated_index_from =
+						dominators.first_dom_node_index[node_index];
+					let dominated_index_to =
+						dominators.first_dom_node_index[node_index + 1];
 
 					if !seen
 						&& (node.weight.self_size != 0
@@ -261,7 +276,7 @@ impl Graph {
 				}
 			}
 
-			let mut groups: Vec<_> = groups.into_values().collect();
+			let mut groups:Vec<_> = groups.into_values().collect();
 			groups.sort_by_key(|g| std::cmp::Reverse(g.retained_size));
 			*class_groups = Some(groups);
 		}
@@ -276,10 +291,10 @@ impl Graph {
 			let _perf = PerfCounter::new("build_retainers");
 			let graph = self.graph();
 			let mut r = Retaining {
-				edges: vec![0; graph.edge_count()],
-				nodes: vec![0; graph.edge_count()],
-				first_retainer: vec![0; graph.node_count() + 1],
-				first_edge: vec![0; graph.node_count() + 1],
+				edges:vec![0; graph.edge_count()],
+				nodes:vec![0; graph.edge_count()],
+				first_retainer:vec![0; graph.node_count() + 1],
+				first_edge:vec![0; graph.node_count() + 1],
 			};
 
 			r.first_edge[graph.node_count()] = graph.edge_count();
@@ -304,12 +319,15 @@ impl Graph {
 
 			for node in graph.node_indices() {
 				for edge in graph.edges(node) {
-					let first_retainer_slot_index = r.first_retainer[edge.target().index()];
+					let first_retainer_slot_index =
+						r.first_retainer[edge.target().index()];
 					r.nodes[first_retainer_slot_index] -= 1;
 					let next_unused_retainer_slot_index =
-						first_retainer_slot_index + r.nodes[first_retainer_slot_index];
+						first_retainer_slot_index
+							+ r.nodes[first_retainer_slot_index];
 					r.nodes[next_unused_retainer_slot_index] = node.index();
-					r.edges[next_unused_retainer_slot_index] = edge.id().index();
+					r.edges[next_unused_retainer_slot_index] =
+						edge.id().index();
 				}
 			}
 
@@ -328,7 +346,7 @@ impl Graph {
 		dominators.as_ref().unwrap()
 	}
 
-	pub(crate) fn is_essential_edge(&self, index: usize, typ: &EdgeType) -> bool {
+	pub(crate) fn is_essential_edge(&self, index:usize, typ:&EdgeType) -> bool {
 		if let EdgeType::Weak = typ {
 			return false;
 		}
@@ -355,7 +373,7 @@ impl Graph {
 		flags.as_ref().unwrap()
 	}
 
-	fn mark_detached_dom_tree_nodes(&self, flags: &mut [u8]) {
+	fn mark_detached_dom_tree_nodes(&self, flags:&mut [u8]) {
 		for (index, node) in self.graph().raw_nodes().iter().enumerate() {
 			if let NodeType::Native = node.weight.typ {
 				if node.weight.name().starts_with("Detached ") {
@@ -365,7 +383,7 @@ impl Graph {
 		}
 	}
 
-	fn mark_queriable_heap_objects(&self, flags: &mut [u8]) {
+	fn mark_queriable_heap_objects(&self, flags:&mut [u8]) {
 		let graph = self.graph();
 
 		let mut list = VecDeque::new();
@@ -386,7 +404,10 @@ impl Graph {
 				let typ = edge.weight.typ;
 				if matches!(
 					typ,
-					EdgeType::Hidden | EdgeType::Internal | EdgeType::Invisible | EdgeType::Weak
+					EdgeType::Hidden
+						| EdgeType::Internal
+						| EdgeType::Invisible
+						| EdgeType::Weak
 				) {
 					continue;
 				}
@@ -395,7 +416,7 @@ impl Graph {
 		}
 	}
 
-	fn mark_page_owned_nodes(&self, flags: &mut [u8]) {
+	fn mark_page_owned_nodes(&self, flags:&mut [u8]) {
 		let retainers = self.get_retainers();
 
 		let graph = self.graph();
@@ -406,9 +427,10 @@ impl Graph {
 
 		let mut nodes_to_visit_length = 0;
 
-		// Populate the entry points. They are Window objects and DOM Tree Roots.
-		for edge_index in
-			retainers.first_edge[self.root_index]..retainers.first_edge[self.root_index + 1]
+		// Populate the entry points. They are Window objects and DOM Tree
+		// Roots.
+		for edge_index in retainers.first_edge[self.root_index]
+			..retainers.first_edge[self.root_index + 1]
 		{
 			let edge = &graph.raw_edges()[edge_index];
 			if edge.weight.typ == EdgeType::Element {
@@ -512,7 +534,8 @@ impl Graph {
 
 					stack_top += 1;
 					stack_nodes[stack_top] = child_node_index;
-					stack_current_edge[stack_top] = retainers.first_edge[child_node_index];
+					stack_current_edge[stack_top] =
+						retainers.first_edge[child_node_index];
 					visited[child_node_index] = true;
 				} else {
 					index_to_order[node_index] = post_order_index;
@@ -587,7 +610,7 @@ impl Graph {
 
 		// The affected vector is used to mark entries which dominators
 		// have to be recalculated because of changes in their retainers.
-		let mut affected: Vec<u8> = vec![0; nodes_count];
+		let mut affected:Vec<u8> = vec![0; nodes_count];
 
 		// Mark the root direct children as affected.
 		{
@@ -618,13 +641,18 @@ impl Graph {
 				let node_index = post_order.order_to_index[post_order_index];
 				let mut new_dominator_index = no_entry;
 				let begin_retainer_index = retaining.first_retainer[node_index];
-				let end_retainer_index = retaining.first_retainer[node_index + 1];
+				let end_retainer_index =
+					retaining.first_retainer[node_index + 1];
 				let mut orphan_node = true;
 				for retainer_index in begin_retainer_index..end_retainer_index {
 					let retainer_edge_index = retaining.edges[retainer_index];
-					let retainer_edge_type = &graph.raw_edges()[retainer_edge_index].weight.typ;
+					let retainer_edge_type =
+						&graph.raw_edges()[retainer_edge_index].weight.typ;
 					let retainer_node_index = retaining.nodes[retainer_index];
-					if !self.is_essential_edge(retainer_node_index, retainer_edge_type) {
+					if !self.is_essential_edge(
+						retainer_node_index,
+						retainer_edge_type,
+					) {
 						continue;
 					}
 					orphan_node = false;
@@ -640,13 +668,20 @@ impl Graph {
 						if new_dominator_index == no_entry {
 							new_dominator_index = retainer_post_order_index;
 						} else {
-							while retainer_post_order_index != new_dominator_index {
-								while retainer_post_order_index < new_dominator_index {
+							while retainer_post_order_index
+								!= new_dominator_index
+							{
+								while retainer_post_order_index
+									< new_dominator_index
+								{
 									retainer_post_order_index =
 										dominators[retainer_post_order_index];
 								}
-								while new_dominator_index < retainer_post_order_index {
-									new_dominator_index = dominators[new_dominator_index];
+								while new_dominator_index
+									< retainer_post_order_index
+								{
+									new_dominator_index =
+										dominators[new_dominator_index];
 								}
 							}
 						}
@@ -662,36 +697,47 @@ impl Graph {
 					&& dominators[post_order_index] != new_dominator_index
 				{
 					dominators[post_order_index] = new_dominator_index;
-					let node_index = post_order.order_to_index[post_order_index];
+					let node_index =
+						post_order.order_to_index[post_order_index];
 					changed = true;
 					let begin_index = retaining.first_edge[node_index];
 					let end_index = retaining.first_edge[node_index + 1];
-					for edge in graph.raw_edges()[begin_index..end_index].iter() {
-						affected[post_order.index_to_order[edge.target().index()]] = 1;
+					for edge in graph.raw_edges()[begin_index..end_index].iter()
+					{
+						affected[post_order.index_to_order
+							[edge.target().index()]] = 1;
 					}
 				}
 			}
 		}
 
 		let mut dominators_tree = vec![0; nodes_count];
-		for (post_order_index, dominated_by) in dominators.into_iter().enumerate() {
+		for (post_order_index, dominated_by) in
+			dominators.into_iter().enumerate()
+		{
 			let node_index = post_order.order_to_index[post_order_index];
 			// detached nodes are not in the dominators tree, so have them be
 			// dominated solely by the root.
-			dominators_tree[node_index] =
-				post_order.order_to_index.get(dominated_by).copied().unwrap_or(self.root_index);
+			dominators_tree[node_index] = post_order
+				.order_to_index
+				.get(dominated_by)
+				.copied()
+				.unwrap_or(self.root_index);
 		}
 
 		dominators_tree
 	}
 
-	fn has_only_weak_retainers(&self, node_index: usize) -> bool {
+	fn has_only_weak_retainers(&self, node_index:usize) -> bool {
 		let ret = self.get_retainers();
 
 		let graph = self.graph();
-		for retainer in ret.first_retainer[node_index]..ret.first_retainer[node_index + 1] {
-			if let Some(e) = graph.edge_weight(petgraph::graph::EdgeIndex::new(ret.edges[retainer]))
-			{
+		for retainer in
+			ret.first_retainer[node_index]..ret.first_retainer[node_index + 1]
+		{
+			if let Some(e) = graph.edge_weight(petgraph::graph::EdgeIndex::new(
+				ret.edges[retainer],
+			)) {
 				if !matches!(e.typ, EdgeType::Weak | EdgeType::Shortcut) {
 					return false;
 				}
@@ -703,8 +749,8 @@ impl Graph {
 }
 
 pub struct NodeIterator<'graph> {
-	graph: &'graph PetGraph,
-	index: usize,
+	graph:&'graph PetGraph,
+	index:usize,
 }
 
 impl<'graph> Iterator for NodeIterator<'graph> {
@@ -719,8 +765,9 @@ impl<'graph> Iterator for NodeIterator<'graph> {
 
 #[cfg(test)]
 mod tests {
-	use super::*;
 	use std::fs;
+
+	use super::*;
 
 	#[test]
 	fn test_retained_sizes() {
