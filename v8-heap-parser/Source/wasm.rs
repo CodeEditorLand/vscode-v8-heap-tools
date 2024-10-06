@@ -133,9 +133,7 @@ pub struct WasmNode {
 #[wasm_bindgen(js_class = Node)]
 impl WasmNode {
 	/// Gets the node's string name.
-	pub fn name(&self) -> String {
-		self.graph.raw_nodes()[self.index].weight.name().to_string()
-	}
+	pub fn name(&self) -> String { self.graph.raw_nodes()[self.index].weight.name().to_string() }
 }
 
 #[wasm_bindgen(js_name = RetainerNode)]
@@ -155,9 +153,7 @@ pub struct WasmRetainerNode {
 #[wasm_bindgen(js_class = RetainerNode)]
 impl WasmRetainerNode {
 	/// Gets the node's string name.
-	pub fn name(&self) -> String {
-		self.graph.raw_nodes()[self.index].weight.name().to_string()
-	}
+	pub fn name(&self) -> String { self.graph.raw_nodes()[self.index].weight.name().to_string() }
 }
 
 #[derive(Clone, Copy)]
@@ -180,9 +176,7 @@ impl<'a> PartialEq for SortedNode<'a> {
 	fn eq(&self, other:&Self) -> bool {
 		match self.sort {
 			WasmSortBy::SelfSize => self.node.self_size == other.node.self_size,
-			WasmSortBy::RetainedSize => {
-				self.retained_size == other.retained_size
-			},
+			WasmSortBy::RetainedSize => self.retained_size == other.retained_size,
 			WasmSortBy::Name => self.node.name() == other.node.name(),
 		}
 	}
@@ -193,21 +187,15 @@ impl<'a> Eq for SortedNode<'a> {}
 impl<'a> Ord for SortedNode<'a> {
 	fn cmp(&self, other:&Self) -> std::cmp::Ordering {
 		match self.sort {
-			WasmSortBy::SelfSize => {
-				self.node.self_size.cmp(&other.node.self_size).reverse()
-			},
-			WasmSortBy::RetainedSize => {
-				self.retained_size.cmp(&other.retained_size).reverse()
-			},
+			WasmSortBy::SelfSize => self.node.self_size.cmp(&other.node.self_size).reverse(),
+			WasmSortBy::RetainedSize => self.retained_size.cmp(&other.retained_size).reverse(),
 			WasmSortBy::Name => self.node.name().cmp(other.node.name()),
 		}
 	}
 }
 
 impl<'a> PartialOrd for SortedNode<'a> {
-	fn partial_cmp(&self, other:&Self) -> Option<std::cmp::Ordering> {
-		Some(self.cmp(other))
-	}
+	fn partial_cmp(&self, other:&Self) -> Option<std::cmp::Ordering> { Some(self.cmp(other)) }
 }
 
 #[wasm_bindgen]
@@ -271,24 +259,14 @@ impl Graph {
 		end:usize,
 		sort_by:WasmSortBy,
 	) -> Vec<WasmNode> {
-		let children =
-			self.graph().edges(petgraph::graph::NodeIndex::new(parent));
-		self.children_of_something(
-			children.map(|c| c.target()),
-			start,
-			end,
-			sort_by,
-		)
+		let children = self.graph().edges(petgraph::graph::NodeIndex::new(parent));
+		self.children_of_something(children.map(|c| c.target()), start, end, sort_by)
 	}
 
 	/// Gets all nodes that retain the given index. Each structure returns
 	/// what node it retains; the queried node retains itself.
 	#[wasm_bindgen(js_name = get_all_retainers)]
-	pub fn get_all_retainers_wasm(
-		&self,
-		index:usize,
-		max_distance:usize,
-	) -> Vec<WasmRetainerNode> {
+	pub fn get_all_retainers_wasm(&self, index:usize, max_distance:usize) -> Vec<WasmRetainerNode> {
 		let graph = self.graph();
 
 		let mut out = vec![];
@@ -296,12 +274,7 @@ impl Graph {
 		let mut q = VecDeque::new();
 
 		let mut visited = HashSet::new();
-		q.push_front((
-			0,
-			index,
-			WasmEdgeType::Internal,
-			petgraph::graph::NodeIndex::new(index),
-		));
+		q.push_front((0, index, WasmEdgeType::Internal, petgraph::graph::NodeIndex::new(index)));
 
 		while let Some((distance, retains_index, edge_typ, i)) = q.pop_front() {
 			if let Some(n) = graph.node_weight(i) {
@@ -330,18 +303,11 @@ impl Graph {
 
 				visited.insert(src_index);
 				let typ = edge.weight().typ;
-				if src_index == self.root_index
-					|| !self.is_essential_edge(src_index, &typ)
-				{
+				if src_index == self.root_index || !self.is_essential_edge(src_index, &typ) {
 					continue;
 				}
 
-				q.push_back((
-					distance + 1,
-					i.index(),
-					typ.into(),
-					edge.source(),
-				))
+				q.push_back((distance + 1, i.index(), typ.into(), edge.source()))
 			}
 		}
 
@@ -365,8 +331,7 @@ impl Graph {
 		// Use a binary heap to let us do an insertion sort. This is better than
 		// cloning and quicksorting the entire list of nodes, because we know we
 		// don't need anything past the 'end' index.
-		let mut heap =
-			BinaryHeap::with_capacity(min(end + 1, graph.node_count()));
+		let mut heap = BinaryHeap::with_capacity(min(end + 1, graph.node_count()));
 
 		for child in iter {
 			let sorted = SortedNode {

@@ -95,24 +95,17 @@ impl<'de> Visitor<'de> for RootVisitor {
 				},
 				"nodes" => {
 					let snapshot = snapshot.as_ref().ok_or_else(|| {
-						de::Error::custom(
-							"expected 'snapshot' before 'nodes' field",
-						)
+						de::Error::custom("expected 'snapshot' before 'nodes' field")
 					})?;
 
-					graph =
-						Some(map.next_value_seed(NodesDeserializer(snapshot))?);
+					graph = Some(map.next_value_seed(NodesDeserializer(snapshot))?);
 				},
 				"edges" => {
 					let snapshot = snapshot.as_ref().ok_or_else(|| {
-						de::Error::custom(
-							"expected 'snapshot' before 'edges' field",
-						)
+						de::Error::custom("expected 'snapshot' before 'edges' field")
 					})?;
 					let graph = graph.as_mut().ok_or_else(|| {
-						de::Error::custom(
-							"expected 'nodes' before 'edges' field",
-						)
+						de::Error::custom("expected 'nodes' before 'edges' field")
 					})?;
 
 					map.next_value_seed(EdgesDeserializer(snapshot, graph))?;
@@ -141,15 +134,11 @@ impl<'de> Visitor<'de> for RootVisitor {
 		if !has_edges {
 			return Err(de::Error::missing_field("edges"));
 		}
-		let snapshot =
-			snapshot.ok_or_else(|| de::Error::missing_field("snapshot"))?;
+		let snapshot = snapshot.ok_or_else(|| de::Error::missing_field("snapshot"))?;
 
-		let mut graph =
-			graph.ok_or_else(|| de::Error::missing_field("nodes"))?;
+		let mut graph = graph.ok_or_else(|| de::Error::missing_field("nodes"))?;
 
-		let strings = Rc::new(
-			strings.ok_or_else(|| de::Error::missing_field("strings"))?,
-		);
+		let strings = Rc::new(strings.ok_or_else(|| de::Error::missing_field("strings"))?);
 
 		for node in graph.node_weights_mut() {
 			node.strings = Some(strings.clone());
@@ -212,16 +201,12 @@ impl<'de, 'a> DeserializeSeed<'de> for NodesDeserializer<'a> {
 					}
 				}
 
-				let name_offset =
-					name_offset.ok_or(de::Error::missing_field("name"))?;
-				let type_offset =
-					type_offset.ok_or(de::Error::missing_field("type"))?;
+				let name_offset = name_offset.ok_or(de::Error::missing_field("name"))?;
+				let type_offset = type_offset.ok_or(de::Error::missing_field("type"))?;
 				let type_types = match self.0.meta.node_types.get(type_offset) {
 					None => return Err(de::Error::missing_field("type")),
 					Some(StringOrArray::Single(_)) => {
-						return Err(de::Error::custom(
-							"node `type` should be an array",
-						));
+						return Err(de::Error::custom("node `type` should be an array"));
 					},
 					Some(StringOrArray::Arr(a)) => a,
 				};
@@ -240,25 +225,16 @@ impl<'de, 'a> DeserializeSeed<'de> for NodesDeserializer<'a> {
 						graph.add_node(Node {
 							strings:None,
 							name_index:buf[name_offset] as usize,
-							typ:NodeType::from_str(
-								type_types,
-								buf[type_offset] as usize,
-							),
-							self_size:self_size_offset
-								.map(|o| buf[o])
-								.unwrap_or_default(),
+							typ:NodeType::from_str(type_types, buf[type_offset] as usize),
+							self_size:self_size_offset.map(|o| buf[o]).unwrap_or_default(),
 							edge_count:edge_count_offset
 								.map(|o| buf[o] as usize)
 								.unwrap_or_default(),
-							trace_node_id:trace_node_id_offset
-								.map(|o| buf[o])
-								.unwrap_or_default(),
+							trace_node_id:trace_node_id_offset.map(|o| buf[o]).unwrap_or_default(),
 							detachedness:detachedness_offset
 								.map(|o| buf[o] as u32)
 								.unwrap_or_default(),
-							id:id_offset
-								.map(|o| buf[o] as u32)
-								.unwrap_or_default(),
+							id:id_offset.map(|o| buf[o] as u32).unwrap_or_default(),
 						});
 					}
 				}
@@ -309,18 +285,14 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 					}
 				}
 
-				let to_node_offset = to_node_offset
-					.ok_or(de::Error::missing_field("to_node"))?;
-				let type_offset =
-					type_offset.ok_or(de::Error::missing_field("type"))?;
-				let name_or_index_offset = name_or_index_offset
-					.ok_or(de::Error::missing_field("name_or_index"))?;
+				let to_node_offset = to_node_offset.ok_or(de::Error::missing_field("to_node"))?;
+				let type_offset = type_offset.ok_or(de::Error::missing_field("type"))?;
+				let name_or_index_offset =
+					name_or_index_offset.ok_or(de::Error::missing_field("name_or_index"))?;
 				let type_types = match self.0.meta.edge_types.get(type_offset) {
 					None => return Err(de::Error::missing_field("type")),
 					Some(StringOrArray::Single(_)) => {
-						return Err(de::Error::custom(
-							"edge `type` should be an array",
-						));
+						return Err(de::Error::custom("edge `type` should be an array"));
 					},
 					Some(StringOrArray::Arr(a)) => a,
 				};
@@ -329,39 +301,30 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 				let node_row_size = self.0.meta.node_fields.len();
 
 				// Each node own the next "edge_count" edges in the array.
-				let unexpected_end =
-					|| de::Error::custom("unexpected end of edges");
+				let unexpected_end = || de::Error::custom("unexpected end of edges");
 				let nodes_len = self.1.raw_nodes().len();
 				for from_index in 0..nodes_len {
-					let edge_count =
-						self.1.raw_nodes()[from_index].weight.edge_count;
-					let from_index =
-						petgraph::graph::NodeIndex::new(from_index);
+					let edge_count = self.1.raw_nodes()[from_index].weight.edge_count;
+					let from_index = petgraph::graph::NodeIndex::new(from_index);
 					for _ in 0..edge_count {
 						// we know that all the offsets exists and are within
 						// the row_size, so they must be assigned before getting
 						// to the add_edge method.
 						let mut typ:usize = unsafe { std::mem::zeroed() };
 						let mut to_index:usize = unsafe { std::mem::zeroed() };
-						let mut name_or_index:NameOrIndex =
-							unsafe { std::mem::zeroed() };
+						let mut name_or_index:NameOrIndex = unsafe { std::mem::zeroed() };
 
 						for i in 0..row_size {
 							match i {
 								i if i == to_node_offset => {
-									to_index = seq
-										.next_element()?
-										.ok_or_else(unexpected_end)?;
+									to_index = seq.next_element()?.ok_or_else(unexpected_end)?;
 								},
 								i if i == name_or_index_offset => {
-									name_or_index = seq
-										.next_element()?
-										.ok_or_else(unexpected_end)?;
+									name_or_index =
+										seq.next_element()?.ok_or_else(unexpected_end)?;
 								},
 								i if i == type_offset => {
-									typ = seq
-										.next_element()?
-										.ok_or_else(unexpected_end)?;
+									typ = seq.next_element()?.ok_or_else(unexpected_end)?;
 								},
 								_ => {},
 							}
@@ -369,9 +332,7 @@ impl<'de, 'a> DeserializeSeed<'de> for EdgesDeserializer<'a> {
 
 						self.1.add_edge(
 							from_index,
-							petgraph::graph::NodeIndex::new(
-								to_index / node_row_size,
-							),
+							petgraph::graph::NodeIndex::new(to_index / node_row_size),
 							PGNodeEdge {
 								typ:EdgeType::from_str(type_types, typ),
 								name:name_or_index,
@@ -564,9 +525,7 @@ impl EdgeType {
 	}
 }
 
-pub fn decode_reader(
-	input:impl std::io::Read,
-) -> Result<Graph, serde_json::Error> {
+pub fn decode_reader(input:impl std::io::Read) -> Result<Graph, serde_json::Error> {
 	// todo@connor412: parsing the JSON takes the majority of time when parsing
 	// a graph. We might be faster if we use DeserializeSeed to parse data
 	// directly into the graph structure.

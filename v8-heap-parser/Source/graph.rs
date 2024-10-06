@@ -70,17 +70,11 @@ mod flag {
 struct Flags(Vec<u8>);
 
 impl Flags {
-	pub fn test(&self, index:usize, flag:u8) -> bool {
-		(self.0[index] & flag) != 0
-	}
+	pub fn test(&self, index:usize, flag:u8) -> bool { (self.0[index] & flag) != 0 }
 }
 
 impl Graph {
-	pub(crate) fn new(
-		inner:PetGraph,
-		root_index:usize,
-		strings:Rc<Vec<String>>,
-	) -> Self {
+	pub(crate) fn new(inner:PetGraph, root_index:usize, strings:Rc<Vec<String>>) -> Self {
 		Self {
 			inner:Rc::new(inner),
 			root_index,
@@ -96,9 +90,7 @@ impl Graph {
 	}
 
 	/// Gets a list of all nodes in the graph.
-	pub fn nodes(&self) -> &[petgraph::graph::Node<Node>] {
-		self.inner.raw_nodes()
-	}
+	pub fn nodes(&self) -> &[petgraph::graph::Node<Node>] { self.inner.raw_nodes() }
 
 	/// Gets a node by its index.
 	pub fn get_node(&self, index:usize) -> Option<&Node> {
@@ -114,9 +106,7 @@ impl Graph {
 	pub(crate) fn graph(&self) -> &PetGraph { &self.inner }
 
 	/// Gets an iterator over the graph nodes.
-	pub fn iter(&self) -> NodeIterator<'_> {
-		NodeIterator { graph:self.graph(), index:0 }
-	}
+	pub fn iter(&self) -> NodeIterator<'_> { NodeIterator { graph:self.graph(), index:0 } }
 
 	/// Gets a list children of the node at the given index.
 	pub fn children(&self, parent:usize) -> Vec<usize> {
@@ -185,26 +175,22 @@ impl Graph {
 			for i in 0..graph.node_count() {
 				let dominated_count = first_dom_node_index[i];
 				if i < graph.node_count() - 1 {
-					dominated_nodes[first_dominated_node_index] =
-						dominated_count;
+					dominated_nodes[first_dominated_node_index] = dominated_count;
 				}
 				first_dom_node_index[i] = first_dominated_node_index;
 				first_dominated_node_index += dominated_count;
 			}
-			first_dom_node_index[graph.node_count()] =
-				dominated_nodes.len() - 1;
+			first_dom_node_index[graph.node_count()] = dominated_nodes.len() - 1;
 
 			for node_index in range {
 				let dominator_ordinal = dominators_tree[node_index];
-				let mut dominated_ref_index =
-					first_dom_node_index[dominator_ordinal];
+				let mut dominated_ref_index = first_dom_node_index[dominator_ordinal];
 				dominated_nodes[dominated_ref_index] -= 1;
 				dominated_ref_index += dominated_nodes[dominated_ref_index];
 				dominated_nodes[dominated_ref_index] = node_index;
 			}
 
-			*dominated_nodes_o =
-				Some(DominatedNodes { dominated_nodes, first_dom_node_index });
+			*dominated_nodes_o = Some(DominatedNodes { dominated_nodes, first_dom_node_index });
 		}
 
 		dominated_nodes_o.as_ref().unwrap()
@@ -245,10 +231,8 @@ impl Graph {
 					let name = node.weight.class_name();
 					let seen = seen_groups.contains(name);
 
-					let dominated_index_from =
-						dominators.first_dom_node_index[node_index];
-					let dominated_index_to =
-						dominators.first_dom_node_index[node_index + 1];
+					let dominated_index_from = dominators.first_dom_node_index[node_index];
+					let dominated_index_to = dominators.first_dom_node_index[node_index + 1];
 
 					if !seen
 						&& (node.weight.self_size != 0
@@ -319,15 +303,12 @@ impl Graph {
 
 			for node in graph.node_indices() {
 				for edge in graph.edges(node) {
-					let first_retainer_slot_index =
-						r.first_retainer[edge.target().index()];
+					let first_retainer_slot_index = r.first_retainer[edge.target().index()];
 					r.nodes[first_retainer_slot_index] -= 1;
 					let next_unused_retainer_slot_index =
-						first_retainer_slot_index
-							+ r.nodes[first_retainer_slot_index];
+						first_retainer_slot_index + r.nodes[first_retainer_slot_index];
 					r.nodes[next_unused_retainer_slot_index] = node.index();
-					r.edges[next_unused_retainer_slot_index] =
-						edge.id().index();
+					r.edges[next_unused_retainer_slot_index] = edge.id().index();
 				}
 			}
 
@@ -404,10 +385,7 @@ impl Graph {
 				let typ = edge.weight.typ;
 				if matches!(
 					typ,
-					EdgeType::Hidden
-						| EdgeType::Internal
-						| EdgeType::Invisible
-						| EdgeType::Weak
+					EdgeType::Hidden | EdgeType::Internal | EdgeType::Invisible | EdgeType::Weak
 				) {
 					continue;
 				}
@@ -429,8 +407,8 @@ impl Graph {
 
 		// Populate the entry points. They are Window objects and DOM Tree
 		// Roots.
-		for edge_index in retainers.first_edge[self.root_index]
-			..retainers.first_edge[self.root_index + 1]
+		for edge_index in
+			retainers.first_edge[self.root_index]..retainers.first_edge[self.root_index + 1]
 		{
 			let edge = &graph.raw_edges()[edge_index];
 			if edge.weight.typ == EdgeType::Element {
@@ -534,8 +512,7 @@ impl Graph {
 
 					stack_top += 1;
 					stack_nodes[stack_top] = child_node_index;
-					stack_current_edge[stack_top] =
-						retainers.first_edge[child_node_index];
+					stack_current_edge[stack_top] = retainers.first_edge[child_node_index];
 					visited[child_node_index] = true;
 				} else {
 					index_to_order[node_index] = post_order_index;
@@ -641,18 +618,13 @@ impl Graph {
 				let node_index = post_order.order_to_index[post_order_index];
 				let mut new_dominator_index = no_entry;
 				let begin_retainer_index = retaining.first_retainer[node_index];
-				let end_retainer_index =
-					retaining.first_retainer[node_index + 1];
+				let end_retainer_index = retaining.first_retainer[node_index + 1];
 				let mut orphan_node = true;
 				for retainer_index in begin_retainer_index..end_retainer_index {
 					let retainer_edge_index = retaining.edges[retainer_index];
-					let retainer_edge_type =
-						&graph.raw_edges()[retainer_edge_index].weight.typ;
+					let retainer_edge_type = &graph.raw_edges()[retainer_edge_index].weight.typ;
 					let retainer_node_index = retaining.nodes[retainer_index];
-					if !self.is_essential_edge(
-						retainer_node_index,
-						retainer_edge_type,
-					) {
+					if !self.is_essential_edge(retainer_node_index, retainer_edge_type) {
 						continue;
 					}
 					orphan_node = false;
@@ -668,20 +640,13 @@ impl Graph {
 						if new_dominator_index == no_entry {
 							new_dominator_index = retainer_post_order_index;
 						} else {
-							while retainer_post_order_index
-								!= new_dominator_index
-							{
-								while retainer_post_order_index
-									< new_dominator_index
-								{
+							while retainer_post_order_index != new_dominator_index {
+								while retainer_post_order_index < new_dominator_index {
 									retainer_post_order_index =
 										dominators[retainer_post_order_index];
 								}
-								while new_dominator_index
-									< retainer_post_order_index
-								{
-									new_dominator_index =
-										dominators[new_dominator_index];
+								while new_dominator_index < retainer_post_order_index {
+									new_dominator_index = dominators[new_dominator_index];
 								}
 							}
 						}
@@ -697,32 +662,24 @@ impl Graph {
 					&& dominators[post_order_index] != new_dominator_index
 				{
 					dominators[post_order_index] = new_dominator_index;
-					let node_index =
-						post_order.order_to_index[post_order_index];
+					let node_index = post_order.order_to_index[post_order_index];
 					changed = true;
 					let begin_index = retaining.first_edge[node_index];
 					let end_index = retaining.first_edge[node_index + 1];
-					for edge in graph.raw_edges()[begin_index..end_index].iter()
-					{
-						affected[post_order.index_to_order
-							[edge.target().index()]] = 1;
+					for edge in graph.raw_edges()[begin_index..end_index].iter() {
+						affected[post_order.index_to_order[edge.target().index()]] = 1;
 					}
 				}
 			}
 		}
 
 		let mut dominators_tree = vec![0; nodes_count];
-		for (post_order_index, dominated_by) in
-			dominators.into_iter().enumerate()
-		{
+		for (post_order_index, dominated_by) in dominators.into_iter().enumerate() {
 			let node_index = post_order.order_to_index[post_order_index];
 			// detached nodes are not in the dominators tree, so have them be
 			// dominated solely by the root.
-			dominators_tree[node_index] = post_order
-				.order_to_index
-				.get(dominated_by)
-				.copied()
-				.unwrap_or(self.root_index);
+			dominators_tree[node_index] =
+				post_order.order_to_index.get(dominated_by).copied().unwrap_or(self.root_index);
 		}
 
 		dominators_tree
@@ -732,12 +689,9 @@ impl Graph {
 		let ret = self.get_retainers();
 
 		let graph = self.graph();
-		for retainer in
-			ret.first_retainer[node_index]..ret.first_retainer[node_index + 1]
-		{
-			if let Some(e) = graph.edge_weight(petgraph::graph::EdgeIndex::new(
-				ret.edges[retainer],
-			)) {
+		for retainer in ret.first_retainer[node_index]..ret.first_retainer[node_index + 1] {
+			if let Some(e) = graph.edge_weight(petgraph::graph::EdgeIndex::new(ret.edges[retainer]))
+			{
 				if !matches!(e.typ, EdgeType::Weak | EdgeType::Shortcut) {
 					return false;
 				}

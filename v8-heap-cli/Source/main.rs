@@ -29,8 +29,7 @@ fn main() -> Result<(), Error> {
 		},
 		f => {
 			let path = PathBuf::from(f);
-			let file =
-				std::fs::File::open(path).map_err(Error::CouldNotReadInput)?;
+			let file = std::fs::File::open(path).map_err(Error::CouldNotReadInput)?;
 			v8_heap_parser::decode_reader(BufReader::new(file))?
 		},
 	};
@@ -68,9 +67,7 @@ fn do_print_summary(graph:&Graph, cli:Cli) {
 			.map(|d| {
 				match (cli.node_id.get(d), &cli.grep) {
 					(Some(id), _) => QueryOpt::Id(*id),
-					(_, Some(g)) if d == cli.node_id.len() => {
-						QueryOpt::Name(g.to_string())
-					},
+					(_, Some(g)) if d == cli.node_id.len() => QueryOpt::Name(g.to_string()),
 					_ => QueryOpt::Top(cli.top),
 				}
 			})

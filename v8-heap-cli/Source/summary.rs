@@ -40,9 +40,7 @@ impl<'a> SummarizableNode for TopLevelGroup<'a> {
 impl<'a> SummarizableNode for NodeWithSize<'a> {
 	fn id(&self) -> u64 { self.node.id as u64 }
 
-	fn children(&self, graph:&Graph) -> Vec<usize> {
-		graph.children(self.index)
-	}
+	fn children(&self, graph:&Graph) -> Vec<usize> { graph.children(self.index) }
 
 	fn name(&self) -> &str { self.node.name() }
 
@@ -85,12 +83,7 @@ pub fn print_summary(opts:&SummaryOptions) -> String {
 		.graph
 		.get_class_groups(opts.no_retained)
 		.iter()
-		.map(|g| {
-			TopLevelGroup {
-				group:g,
-				root:opts.graph.get_node(g.nodes[0]).unwrap(),
-			}
-		})
+		.map(|g| TopLevelGroup { group:g, root:opts.graph.get_node(g.nodes[0]).unwrap() })
 		.collect::<Vec<_>>();
 
 	let mut output = String::with_capacity(1024);
@@ -171,13 +164,9 @@ fn format_print_node(
 				output.push_str(name);
 			}
 			output.push_str(" self size ");
-			output.push_str(
-				&node.shallow_size().to_formatted_string(&Locale::en),
-			);
+			output.push_str(&node.shallow_size().to_formatted_string(&Locale::en));
 			output.push_str(" / retained size ");
-			output.push_str(
-				&node.retained_size().to_formatted_string(&Locale::en),
-			);
+			output.push_str(&node.retained_size().to_formatted_string(&Locale::en));
 
 			if num_children > 0 {
 				output.push_str(&format!(" x{}", num_children));
@@ -200,12 +189,10 @@ fn print_summary_inner<T>(
 	let mut node_indexes = (0..nodes.len()).collect::<Vec<_>>();
 	match sort_by {
 		SortBy::ShallowSize => {
-			node_indexes
-				.sort_by_key(|g| std::cmp::Reverse(nodes[*g].shallow_size()))
+			node_indexes.sort_by_key(|g| std::cmp::Reverse(nodes[*g].shallow_size()))
 		},
 		SortBy::RetainedSize => {
-			node_indexes
-				.sort_by_key(|g| std::cmp::Reverse(nodes[*g].retained_size()))
+			node_indexes.sort_by_key(|g| std::cmp::Reverse(nodes[*g].retained_size()))
 		},
 	}
 
@@ -219,14 +206,7 @@ fn print_summary_inner<T>(
 		}
 
 		let children = node.children(graph);
-		format_print_node(
-			order_index,
-			node,
-			format,
-			depth,
-			output,
-			children.len(),
-		);
+		format_print_node(order_index, node, format, depth, output, children.len());
 		order_index += 1;
 
 		if depth + 1 < query.len() {
@@ -243,15 +223,7 @@ fn print_summary_inner<T>(
 
 			if !children.is_empty() {
 				format_print_children_start(output, format);
-				print_summary_inner(
-					graph,
-					sort_by,
-					format,
-					&children,
-					query,
-					depth + 1,
-					output,
-				);
+				print_summary_inner(graph, sort_by, format, &children, query, depth + 1, output);
 				format_print_children_end(output, format);
 			}
 		}
