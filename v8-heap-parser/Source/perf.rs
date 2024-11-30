@@ -18,6 +18,7 @@ impl Drop for PerfCounter {
 		#[cfg(feature = "print-perf")]
 		{
 			let elapsed = self.start.elapsed();
+
 			eprintln!("[v8-heap-perf] {}: {}ms", self.name, elapsed.as_millis());
 		}
 	}

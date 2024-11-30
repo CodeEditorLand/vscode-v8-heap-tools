@@ -24,12 +24,16 @@ fn main() -> Result<(), Error> {
 	let graph = match cli.input.as_str() {
 		"-" => {
 			let stdin = std::io::stdin();
+
 			let stdin = stdin.lock();
+
 			v8_heap_parser::decode_reader(BufReader::new(stdin))?
 		},
 		f => {
 			let path = PathBuf::from(f);
+
 			let file = std::fs::File::open(path).map_err(Error::CouldNotReadInput)?;
+
 			v8_heap_parser::decode_reader(BufReader::new(file))?
 		},
 	};
@@ -37,9 +41,12 @@ fn main() -> Result<(), Error> {
 	if !cli.op.is_empty() {
 		for op in cli.op {
 			let mut sub_args = shlex::split(&op).unwrap_or_default();
+
 			sub_args.insert(0, cli.input.clone()); // just to make the parser happy
 			sub_args.push(format!("--format={}", cli.format));
+
 			print_divider(cli.format, &sub_args);
+
 			do_print_summary(&graph, Cli::parse_from(sub_args));
 		}
 	} else {
@@ -80,6 +87,7 @@ fn do_print_summary(graph:&Graph, cli:Cli) {
 fn print_divider(format:Format, args:&[String]) {
 	if let Format::Text = format {
 		println!();
+
 		println!("{}:", args.join(" "));
 	}
 }

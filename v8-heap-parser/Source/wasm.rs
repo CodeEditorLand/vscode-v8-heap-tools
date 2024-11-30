@@ -209,6 +209,7 @@ impl Graph {
 		no_retained:bool,
 	) -> Vec<WasmClassGroup> {
 		let groups = self.get_class_groups(no_retained);
+
 		groups[start..min(end, groups.len())]
 			.iter()
 			.map(|g| WasmClassGroup::new(g, self.inner.clone()))
@@ -222,6 +223,7 @@ impl Graph {
 
 		for node in self.nodes().iter() {
 			let cn = node.weight.class_name();
+
 			if let Some(index) = class_names.iter().position(|n| n == cn) {
 				out[index] += 1;
 			}
@@ -260,6 +262,7 @@ impl Graph {
 		sort_by:WasmSortBy,
 	) -> Vec<WasmNode> {
 		let children = self.graph().edges(petgraph::graph::NodeIndex::new(parent));
+
 		self.children_of_something(children.map(|c| c.target()), start, end, sort_by)
 	}
 
@@ -268,10 +271,13 @@ impl Graph {
 	#[wasm_bindgen(js_name = get_all_retainers)]
 	pub fn get_all_retainers_wasm(&self, index:usize, max_distance:usize) -> Vec<WasmRetainerNode> {
 		let graph = self.graph();
+
 		let mut out = vec![];
 
 		let mut q = VecDeque::new();
+
 		let mut visited = HashSet::new();
+
 		q.push_front((0, index, WasmEdgeType::Internal, petgraph::graph::NodeIndex::new(index)));
 
 		while let Some((distance, retains_index, edge_typ, i)) = q.pop_front() {
@@ -295,12 +301,15 @@ impl Graph {
 
 			for edge in graph.edges_directed(i, petgraph::Direction::Incoming) {
 				let src_index = edge.source().index();
+
 				if visited.contains(&src_index) {
 					continue;
 				}
 
 				visited.insert(src_index);
+
 				let typ = edge.weight().typ;
+
 				if src_index == self.root_index || !self.is_essential_edge(src_index, &typ) {
 					continue;
 				}
@@ -351,6 +360,7 @@ impl Graph {
 		// because we enforce the max heap size in the above loop) and then
 		// reverse them.
 		let mut result = Vec::with_capacity(min(end - start, heap.len()));
+
 		for _ in start..end {
 			if let Some(n) = heap.pop() {
 				result.push(WasmNode {
@@ -364,6 +374,7 @@ impl Graph {
 				});
 			}
 		}
+
 		result.reverse();
 
 		result
