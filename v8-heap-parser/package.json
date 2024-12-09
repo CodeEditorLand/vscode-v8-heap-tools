@@ -1,5 +1,7 @@
 {
+	"dependencies": {},
 	"description": "Parses V8 heap snapshots",
+	"devDependencies": {},
 	"exports": {
 		"bundler": "./pkg/bundler/v8_heap_parser.js",
 		"import": "./pkg/web/v8_heap_parser.js",
@@ -7,7 +9,7 @@
 		"require": "./pkg/nodejs/v8_heap_parser.js"
 	},
 	"main": "pkg/nodejs/v8_heap_parser.js",
-	"name": "@vscode/v8-heap-parser",
+	"name": "@codeeditorland/v8-heap-parser",
 	"scripts": {
 		"compile": "npm run compile:web && npm run compile:bundler && npm run compile:nodejs",
 		"compile:bundler": "wasm-pack build --target bundler --no-pack -d pkg/bundler && node -e \"fs.unlinkSync('./pkg/bundler/.gitignore')\"",
