@@ -1,9 +1,9 @@
 use std::{borrow::Cow, fmt, fmt::Display, rc::Rc};
 
 use serde::{
-	de::{self, DeserializeSeed, SeqAccess, Visitor},
 	Deserialize,
 	Deserializer,
+	de::{self, DeserializeSeed, SeqAccess, Visitor},
 };
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::prelude::*;

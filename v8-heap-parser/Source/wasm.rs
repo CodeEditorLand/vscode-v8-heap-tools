@@ -8,11 +8,11 @@ use petgraph::visit::EdgeRef;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-	decoder::{NodeType, PetGraph},
 	ClassGroup,
 	EdgeType,
 	Graph,
 	Node,
+	decoder::{NodeType, PetGraph},
 };
 
 #[wasm_bindgen]
