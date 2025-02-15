@@ -1,16 +1,16 @@
-[package]
-name = "v8-heap-cli"
-version = "0.1.0"
-edition = "2021"
-
 [[bin]]
 name = "v8-heap"
 path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.4", features = ["derive"] }
+num-format = "0.4"
+serde_json = { version = "1.0" }
+shlex = { version = "1.2" }
 thiserror = { version = "1.0" }
 v8-heap-parser = { version = "1.1.0", path = "../v8-heap-parser" }
-serde_json = { version = "1.0" }
-num-format = "0.4"
-shlex = { version = "1.2" }
+
+[package]
+edition = "2021"
+name = "v8-heap-cli"
+version = "0.1.0"
